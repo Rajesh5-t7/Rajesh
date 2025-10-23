@@ -14,10 +14,17 @@
    - 3.2. [Tournament Management](#32-tournament-management)
    - 3.3. [Wallet Requests](#33-wallet-requests)
    - 3.4. [Users & Wallets](#34-users--wallets)
+4. [Ports & Settings](#4-ports--settings)
+5. [Database Structure](#5-database-structure)
+6. [Technical Details](#6-technical-details)
+   - 6.1. [Folder Structure](#61-folder-structure)
+   - 6.2. [Prompt](#62-prompt)
 
 ---
 
 ## 1. Introduction
+
+This document provides a comprehensive overview of the Tournament Application, a platform designed to facilitate online gaming tournaments. It details both the user-facing functionalities and the administrative capabilities, along with the underlying database structure and technical specifications. The application aims to provide a seamless experience for users to join and manage tournaments, and for administrators to efficiently manage the platform, including tournament creation, user management, and financial transactions.
 
 The Tournament Application is a comprehensive platform designed to facilitate online gaming tournaments with integrated wallet functionality. The application consists of two main interfaces:
 
@@ -39,46 +46,50 @@ The User Application provides players with all the necessary tools to participat
 
 ### 2.1. Authentication
 
-#### Login
-- **Email/Username**: Users can log in using their registered email address or username
-- **Password**: Secure password authentication
-- **Remember Me**: Optional checkbox to maintain login session
-- **Forgot Password**: Password recovery functionality via email
+The user application incorporates a streamlined authentication process, exclusively utilizing Google Sign-In. Upon a user's initial login, a new record is automatically created within the Firestore database. This record encompasses essential user details such as their name, email address, and profile photo. Additionally, a default wallet balance of zero is assigned, and the user's role is designated as 'user'. This approach ensures a quick and secure onboarding experience while maintaining data integrity within the system.
 
-#### Registration
-- **Email Verification**: Required email verification process
-- **Username**: Unique username selection
-- **Password Requirements**: Strong password policy enforcement
-- **Terms & Conditions**: Mandatory acceptance of terms and privacy policy
+#### Google Sign-In Integration
+- **OAuth 2.0**: Secure Google OAuth 2.0 authentication flow
+- **Automatic Account Creation**: New users are automatically registered upon first login
+- **Profile Data Sync**: Name, email, and profile photo are automatically imported from Google
+- **Role Assignment**: Default 'user' role is automatically assigned to new accounts
+
+#### User Data Management
+- **Firestore Integration**: User data is stored in Google Firestore database
+- **Default Wallet**: New users receive a wallet with zero balance
+- **Profile Photo**: Automatically synced from Google account
+- **Data Integrity**: Ensures consistent user data structure across the platform
 
 #### Security Features
-- **Two-Factor Authentication (2FA)**: Optional 2FA for enhanced security
+- **Google Security**: Leverages Google's robust security infrastructure
 - **Session Management**: Secure session handling with automatic timeout
-- **Account Lockout**: Protection against brute force attacks
+- **Data Privacy**: Minimal data collection with user consent
 
 ### 2.2. Home (Tournaments List)
+
+The Home screen serves as the primary dashboard for users, providing a comprehensive list of all available tournaments. This screen is designed for easy navigation and quick access to tournament information.
+
+#### Tournament Cards
+Each tournament is represented by a card displaying crucial information:
+- **Game Image**: Visual representation uploaded by the admin
+- **Tournament Title**: Clear and descriptive tournament name
+- **Date and Time**: Tournament schedule information
+- **Entry Fee**: Cost to participate in the tournament
+- **Slots Remaining**: Available participant slots
+- **Join Button**: Prominent call-to-action for tournament participation
+
+#### Filters/Search
+Users can efficiently find specific tournaments using various filters and search options:
+- **Date Filter**: Filter tournaments by specific dates or date ranges
+- **Category Filter**: Filter by game type, tournament format, or skill level
+- **Entry Fee Filter**: Filter by price range or free tournaments
+- **Search Functionality**: Text-based search across tournament names and descriptions
 
 #### Tournament Discovery
 - **Live Tournaments**: Currently active tournaments with real-time updates
 - **Upcoming Tournaments**: Scheduled tournaments with countdown timers
 - **Tournament Categories**: Filter by game type, skill level, or prize pool
-- **Search Functionality**: Search tournaments by name, game, or keywords
-
-#### Tournament Cards
-- **Tournament Name**: Clear tournament title
-- **Game Type**: Visual game icon and name
-- **Entry Fee**: Prominently displayed entry cost
-- **Prize Pool**: Total prize money available
-- **Participants**: Current number of registered players
-- **Start Time**: Tournament start date and time
-- **Duration**: Expected tournament length
-- **Status Indicators**: Live, Starting Soon, Registration Open, etc.
-
-#### Quick Actions
-- **Join Tournament**: One-click tournament registration
-- **View Details**: Detailed tournament information
-- **Add to Favorites**: Save tournaments for later
-- **Share Tournament**: Social sharing options
+- **Quick Actions**: Join tournament, view details, add to favorites, share
 
 ### 2.3. Wallet
 
@@ -330,6 +341,309 @@ This documentation should be updated regularly to reflect new features, changes,
 - User onboarding documentation
 - API documentation for developers
 - Troubleshooting guides and FAQ updates
+
+---
+
+## 4. Ports & Settings
+
+### Development Environment
+- **Frontend Port**: 3000 (React development server)
+- **Backend Port**: 5000 (Node.js/Express server)
+- **Database Port**: 27017 (MongoDB) / Default Firestore ports
+- **Admin Panel Port**: 3001 (Separate admin interface)
+
+### Production Environment
+- **Frontend**: Port 80/443 (HTTP/HTTPS)
+- **Backend API**: Port 8080 (API server)
+- **Database**: Cloud-hosted (Firestore)
+- **CDN**: Global content delivery network
+
+### Environment Variables
+```env
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Firestore
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_PRIVATE_KEY=your_private_key
+FIREBASE_CLIENT_EMAIL=your_client_email
+
+# Application
+NODE_ENV=production
+PORT=5000
+FRONTEND_URL=http://localhost:3000
+```
+
+### Security Settings
+- **CORS Configuration**: Configured for frontend domain
+- **Rate Limiting**: API rate limiting for security
+- **SSL/TLS**: HTTPS enforcement in production
+- **Firebase Security Rules**: Database access control
+
+---
+
+## 5. Database Structure
+
+### Firestore Collections
+
+#### Users Collection
+```javascript
+users: {
+  [userId]: {
+    name: string,
+    email: string,
+    profilePhoto: string,
+    walletBalance: number,
+    role: 'user' | 'admin',
+    createdAt: timestamp,
+    lastLogin: timestamp,
+    isActive: boolean
+  }
+}
+```
+
+#### Tournaments Collection
+```javascript
+tournaments: {
+  [tournamentId]: {
+    title: string,
+    description: string,
+    gameImage: string,
+    gameType: string,
+    entryFee: number,
+    prizePool: number,
+    maxParticipants: number,
+    currentParticipants: number,
+    startDate: timestamp,
+    endDate: timestamp,
+    status: 'upcoming' | 'live' | 'completed' | 'cancelled',
+    createdBy: string, // admin userId
+    createdAt: timestamp,
+    rules: string,
+    category: string
+  }
+}
+```
+
+#### UserTournaments Collection (Junction Table)
+```javascript
+userTournaments: {
+  [userTournamentId]: {
+    userId: string,
+    tournamentId: string,
+    joinedAt: timestamp,
+    status: 'registered' | 'participating' | 'completed' | 'disqualified',
+    position: number, // final ranking
+    prizeAmount: number
+  }
+}
+```
+
+#### Transactions Collection
+```javascript
+transactions: {
+  [transactionId]: {
+    userId: string,
+    type: 'deposit' | 'withdrawal' | 'tournament_entry' | 'prize_win',
+    amount: number,
+    description: string,
+    status: 'pending' | 'completed' | 'failed',
+    createdAt: timestamp,
+    processedAt: timestamp,
+    reference: string // external payment reference
+  }
+}
+```
+
+#### WalletRequests Collection
+```javascript
+walletRequests: {
+  [requestId]: {
+    userId: string,
+    type: 'withdrawal',
+    amount: number,
+    status: 'pending' | 'approved' | 'rejected',
+    requestedAt: timestamp,
+    processedAt: timestamp,
+    processedBy: string, // admin userId
+    reason: string, // rejection reason if applicable
+    bankDetails: {
+      accountNumber: string,
+      bankName: string,
+      accountHolderName: string
+    }
+  }
+}
+```
+
+### Database Relationships
+- **One-to-Many**: User → Tournaments (through UserTournaments)
+- **One-to-Many**: User → Transactions
+- **One-to-Many**: User → WalletRequests
+- **Many-to-Many**: Users ↔ Tournaments (through UserTournaments)
+
+### Indexing Strategy
+- **Users**: Indexed by email, role, isActive
+- **Tournaments**: Indexed by status, startDate, gameType, category
+- **UserTournaments**: Indexed by userId, tournamentId, status
+- **Transactions**: Indexed by userId, type, status, createdAt
+- **WalletRequests**: Indexed by userId, status, requestedAt
+
+---
+
+## 6. Technical Details
+
+### 6.1. Folder Structure
+
+```
+tournament-application/
+├── frontend/
+│   ├── public/
+│   │   ├── index.html
+│   │   └── favicon.ico
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── auth/
+│   │   │   │   ├── GoogleSignIn.js
+│   │   │   │   └── AuthGuard.js
+│   │   │   ├── tournaments/
+│   │   │   │   ├── TournamentCard.js
+│   │   │   │   ├── TournamentList.js
+│   │   │   │   └── TournamentDetails.js
+│   │   │   ├── wallet/
+│   │   │   │   ├── WalletBalance.js
+│   │   │   │   ├── TransactionHistory.js
+│   │   │   │   └── DepositForm.js
+│   │   │   └── common/
+│   │   │       ├── Header.js
+│   │   │       ├── Footer.js
+│   │   │       └── LoadingSpinner.js
+│   │   ├── pages/
+│   │   │   ├── Home.js
+│   │   │   ├── MyTournaments.js
+│   │   │   ├── Wallet.js
+│   │   │   ├── Profile.js
+│   │   │   └── AdminDashboard.js
+│   │   ├── services/
+│   │   │   ├── firebase.js
+│   │   │   ├── authService.js
+│   │   │   ├── tournamentService.js
+│   │   │   └── walletService.js
+│   │   ├── utils/
+│   │   │   ├── constants.js
+│   │   │   ├── helpers.js
+│   │   │   └── validators.js
+│   │   ├── styles/
+│   │   │   ├── globals.css
+│   │   │   └── components.css
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── package.json
+│   └── README.md
+├── backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── authController.js
+│   │   │   ├── tournamentController.js
+│   │   │   ├── walletController.js
+│   │   │   └── adminController.js
+│   │   ├── middleware/
+│   │   │   ├── auth.js
+│   │   │   ├── validation.js
+│   │   │   └── errorHandler.js
+│   │   ├── models/
+│   │   │   ├── User.js
+│   │   │   ├── Tournament.js
+│   │   │   └── Transaction.js
+│   │   ├── routes/
+│   │   │   ├── auth.js
+│   │   │   ├── tournaments.js
+│   │   │   ├── wallet.js
+│   │   │   └── admin.js
+│   │   ├── services/
+│   │   │   ├── firebaseService.js
+│   │   │   ├── paymentService.js
+│   │   │   └── notificationService.js
+│   │   ├── utils/
+│   │   │   ├── logger.js
+│   │   │   └── helpers.js
+│   │   └── app.js
+│   ├── package.json
+│   └── README.md
+├── admin-dashboard/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── TournamentManagement.js
+│   │   │   ├── UserManagement.js
+│   │   │   ├── WalletRequests.js
+│   │   │   └── Analytics.js
+│   │   ├── pages/
+│   │   │   ├── Dashboard.js
+│   │   │   ├── Tournaments.js
+│   │   │   ├── Users.js
+│   │   │   └── Reports.js
+│   │   └── App.js
+│   └── package.json
+├── docs/
+│   ├── api/
+│   │   ├── auth.md
+│   │   ├── tournaments.md
+│   │   └── wallet.md
+│   └── deployment/
+│       ├── docker.md
+│       └── aws.md
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── docker-compose.yml
+├── Dockerfile
+└── README.md
+```
+
+### 6.2. Prompt
+
+#### System Architecture Prompt
+```
+You are building a Tournament Application with the following specifications:
+
+1. **Authentication**: Google Sign-In only, automatic user creation in Firestore
+2. **Database**: Google Firestore with collections for users, tournaments, transactions
+3. **Frontend**: React.js with responsive design
+4. **Backend**: Node.js/Express with Firebase Admin SDK
+5. **Admin Panel**: Separate React application for tournament and user management
+
+Key Features to Implement:
+- User registration via Google OAuth
+- Tournament listing with filters and search
+- Wallet system with deposits and withdrawals
+- Tournament participation and management
+- Admin dashboard for tournament and user management
+- Real-time updates using Firestore listeners
+
+Security Requirements:
+- Firebase Security Rules for data protection
+- Role-based access control (user/admin)
+- Input validation and sanitization
+- Rate limiting on API endpoints
+
+Performance Considerations:
+- Firestore indexing for efficient queries
+- Image optimization for tournament cards
+- Lazy loading for large tournament lists
+- Caching for frequently accessed data
+```
+
+#### Development Guidelines
+- Follow React best practices and hooks
+- Implement proper error handling and loading states
+- Use TypeScript for type safety (optional)
+- Write comprehensive tests for all features
+- Follow RESTful API design principles
+- Implement proper logging and monitoring
+- Use environment variables for configuration
+- Follow security best practices for authentication
 
 ---
 
