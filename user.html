@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Sports Tournament - User Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        .gradient-primary { background: linear-gradient(135deg, #3B82F6, #14B8A6); }
+        .gradient-success { background: linear-gradient(135deg, #10B981, #14B8A6); }
+        .gradient-danger { background: linear-gradient(135deg, #EF4444, #F97316); }
+        .gradient-card { background: linear-gradient(135deg, #667EEA, #764BA2); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-md">
+        <div class="max-w-md mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-bold text-gray-800">E-Sports Tournaments</h1>
+                <div class="gradient-card text-white px-3 py-1 rounded-full text-sm font-semibold" id="walletBalance">
+                    ₹0
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-md mx-auto px-4 pb-20">
+        <!-- Auth Section -->
+        <div id="authSection" class="py-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome to E-Sports</h2>
+                    <p class="text-gray-600">Join tournaments and win prizes!</p>
+                </div>
+                
+                <!-- Auth Tabs -->
+                <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                    <button id="loginTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors bg-white text-blue-600 shadow-sm">
+                        Login
+                    </button>
+                    <button id="signupTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors text-gray-600">
+                        Sign Up
+                    </button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full gradient-primary text-white py-2 px-4 rounded-md font-medium hover:opacity-90 transition-opacity">
+                        Login
+                    </button>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="signupForm" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" id="signupUsername" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="signupEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="signupPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full gradient-success text-white py-2 px-4 rounded-md font-medium hover:opacity-90 transition-opacity">
+                        Sign Up
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- App Content (Hidden initially) -->
+        <div id="appContent" class="hidden">
+            <!-- Home Page -->
+            <div id="homePage" class="py-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Upcoming Tournaments</h2>
+                <div id="tournamentsList" class="space-y-4">
+                    <!-- Tournaments will be loaded here -->
+                </div>
+            </div>
+
+            <!-- My Tournaments Page -->
+            <div id="myTournamentsPage" class="py-4 hidden">
+                <div class="flex mb-4 bg-gray-100 rounded-lg p-1">
+                    <button id="upcomingTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors bg-white text-blue-600 shadow-sm">
+                        Upcoming
+                    </button>
+                    <button id="liveTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors text-gray-600">
+                        Live
+                    </button>
+                    <button id="completedTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors text-gray-600">
+                        Completed
+                    </button>
+                </div>
+                <div id="myTournamentsList" class="space-y-4">
+                    <!-- User's tournaments will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Wallet Page -->
+            <div id="walletPage" class="py-4 hidden">
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div class="text-center">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Wallet Balance</h3>
+                        <div class="gradient-card text-white text-3xl font-bold py-4 rounded-lg" id="walletBalanceCard">
+                            ₹0
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <button id="addMoneyBtn" class="gradient-success text-white py-3 px-4 rounded-lg font-medium text-center">
+                        <i class="fas fa-plus mb-1 block"></i>
+                        Add Money
+                    </button>
+                    <button id="withdrawBtn" class="gradient-danger text-white py-3 px-4 rounded-lg font-medium text-center">
+                        <i class="fas fa-minus mb-1 block"></i>
+                        Withdraw
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">Transaction History</h4>
+                    <div id="transactionHistory" class="space-y-2">
+                        <!-- Transactions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Page -->
+            <div id="profilePage" class="py-4 hidden">
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gray-300 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i class="fas fa-user text-2xl text-gray-600"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800" id="profileUsername">Username</h3>
+                        <p class="text-gray-600" id="profileEmail">email@example.com</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <button id="resetPasswordBtn" class="w-full bg-white shadow-md rounded-lg p-4 text-left hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-key text-blue-600 mr-3"></i>
+                        Reset Password
+                    </button>
+                    <button id="logoutBtn" class="w-full bg-white shadow-md rounded-lg p-4 text-left hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-sign-out-alt text-red-600 mr-3"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 hidden">
+        <div class="max-w-md mx-auto flex">
+            <button class="nav-item flex-1 py-3 text-center text-blue-600" data-page="home">
+                <i class="fas fa-home block mb-1"></i>
+                <span class="text-xs">Home</span>
+            </button>
+            <button class="nav-item flex-1 py-3 text-center text-gray-400" data-page="myTournaments">
+                <i class="fas fa-trophy block mb-1"></i>
+                <span class="text-xs">My Tournaments</span>
+            </button>
+            <button class="nav-item flex-1 py-3 text-center text-gray-400" data-page="wallet">
+                <i class="fas fa-wallet block mb-1"></i>
+                <span class="text-xs">Wallet</span>
+            </button>
+            <button class="nav-item flex-1 py-3 text-center text-gray-400" data-page="profile">
+                <i class="fas fa-user block mb-1"></i>
+                <span class="text-xs">Profile</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Modals -->
+    <!-- Add Money Modal -->
+    <div id="addMoneyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg max-w-sm w-full p-6">
+                <h3 class="text-lg font-semibold mb-4">Add Money</h3>
+                <div id="qrCodeSection" class="text-center mb-4">
+                    <p class="text-sm text-gray-600 mb-2">Scan QR code to pay</p>
+                    <div id="qrCode" class="w-48 h-48 bg-gray-200 mx-auto rounded-lg flex items-center justify-center">
+                        <i class="fas fa-qrcode text-4xl text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
+                    <input type="text" id="transactionId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter transaction ID">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <input type="number" id="addAmount" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter amount">
+                </div>
+                <div class="flex space-x-3">
+                    <button id="submitAddMoney" class="flex-1 gradient-success text-white py-2 px-4 rounded-md font-medium">
+                        Submit Request
+                    </button>
+                    <button id="cancelAddMoney" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div id="withdrawModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg max-w-sm w-full p-6">
+                <h3 class="text-lg font-semibold mb-4">Withdraw Money</h3>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <input type="number" id="withdrawAmount" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter amount">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">UPI ID</label>
+                    <input type="text" id="upiId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter UPI ID">
+                </div>
+                <div class="flex space-x-3">
+                    <button id="submitWithdraw" class="flex-1 gradient-danger text-white py-2 px-4 rounded-md font-medium">
+                        Submit Request
+                    </button>
+                    <button id="cancelWithdraw" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Tournament Modal -->
+    <div id="joinTournamentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg max-w-sm w-full p-6">
+                <h3 class="text-lg font-semibold mb-4">Join Tournament</h3>
+                <div id="tournamentDetails" class="mb-4">
+                    <!-- Tournament details will be loaded here -->
+                </div>
+                <div class="flex space-x-3">
+                    <button id="confirmJoin" class="flex-1 gradient-primary text-white py-2 px-4 rounded-md font-medium">
+                        Join Now
+                    </button>
+                    <button id="cancelJoin" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Global variables
+        let currentUser = null;
+        let currentTournament = null;
+
+        // DOM Elements
+        const authSection = document.getElementById('authSection');
+        const appContent = document.getElementById('appContent');
+        const bottomNav = document.getElementById('bottomNav');
+        const walletBalance = document.getElementById('walletBalance');
+        const walletBalanceCard = document.getElementById('walletBalanceCard');
+
+        // Auth elements
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+
+        // Navigation elements
+        const navItems = document.querySelectorAll('.nav-item');
+        const pages = {
+            home: document.getElementById('homePage'),
+            myTournaments: document.getElementById('myTournamentsPage'),
+            wallet: document.getElementById('walletPage'),
+            profile: document.getElementById('profilePage')
+        };
+
+        // Tournament tabs
+        const upcomingTab = document.getElementById('upcomingTab');
+        const liveTab = document.getElementById('liveTab');
+        const completedTab = document.getElementById('completedTab');
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAuth();
+            setupEventListeners();
+            checkAuthState();
+        });
+
+        function initializeAuth() {
+            // Tab switching
+            loginTab.addEventListener('click', () => switchAuthTab('login'));
+            signupTab.addEventListener('click', () => switchAuthTab('signup'));
+
+            // Form submissions
+            loginForm.addEventListener('submit', handleLogin);
+            signupForm.addEventListener('submit', handleSignup);
+        }
+
+        function setupEventListeners() {
+            // Navigation
+            navItems.forEach(item => {
+                item.addEventListener('click', () => switchPage(item.dataset.page));
+            });
+
+            // Tournament tabs
+            upcomingTab.addEventListener('click', () => switchTournamentTab('upcoming'));
+            liveTab.addEventListener('click', () => switchTournamentTab('live'));
+            completedTab.addEventListener('click', () => switchTournamentTab('completed'));
+
+            // Wallet buttons
+            document.getElementById('addMoneyBtn').addEventListener('click', showAddMoneyModal);
+            document.getElementById('withdrawBtn').addEventListener('click', showWithdrawModal);
+
+            // Modal buttons
+            document.getElementById('submitAddMoney').addEventListener('click', submitAddMoneyRequest);
+            document.getElementById('cancelAddMoney').addEventListener('click', hideAddMoneyModal);
+            document.getElementById('submitWithdraw').addEventListener('click', submitWithdrawRequest);
+            document.getElementById('cancelWithdraw').addEventListener('click', hideWithdrawModal);
+            document.getElementById('confirmJoin').addEventListener('click', joinTournament);
+            document.getElementById('cancelJoin').addEventListener('click', hideJoinTournamentModal);
+
+            // Profile buttons
+            document.getElementById('resetPasswordBtn').addEventListener('click', resetPassword);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+        }
+
+        function checkAuthState() {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    loadUserData();
+                    showApp();
+                } else {
+                    showAuth();
+                }
+            });
+        }
+
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                loginTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                loginTab.classList.remove('text-gray-600');
+                signupTab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                signupTab.classList.add('text-gray-600');
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            } else {
+                signupTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                signupTab.classList.remove('text-gray-600');
+                loginTab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                loginTab.classList.add('text-gray-600');
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Save user data to database
+                await database.ref(`users/${user.uid}`).set({
+                    username: username,
+                    email: email,
+                    wallet: 0,
+                    transactions: []
+                });
+            } catch (error) {
+                alert('Signup failed: ' + error.message);
+            }
+        }
+
+        function showAuth() {
+            authSection.classList.remove('hidden');
+            appContent.classList.add('hidden');
+            bottomNav.classList.add('hidden');
+        }
+
+        function showApp() {
+            authSection.classList.add('hidden');
+            appContent.classList.remove('hidden');
+            bottomNav.classList.remove('hidden');
+            switchPage('home');
+        }
+
+        function switchPage(pageName) {
+            // Hide all pages
+            Object.values(pages).forEach(page => page.classList.add('hidden'));
+            
+            // Show selected page
+            pages[pageName].classList.remove('hidden');
+            
+            // Update navigation
+            navItems.forEach(item => {
+                if (item.dataset.page === pageName) {
+                    item.classList.add('text-blue-600');
+                    item.classList.remove('text-gray-400');
+                } else {
+                    item.classList.remove('text-blue-600');
+                    item.classList.add('text-gray-400');
+                }
+            });
+
+            // Load page data
+            if (pageName === 'home') {
+                loadTournaments();
+            } else if (pageName === 'myTournaments') {
+                loadMyTournaments();
+            } else if (pageName === 'wallet') {
+                loadTransactionHistory();
+            } else if (pageName === 'profile') {
+                loadProfile();
+            }
+        }
+
+        function switchTournamentTab(tab) {
+            // Update tab appearance
+            [upcomingTab, liveTab, completedTab].forEach(t => {
+                t.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                t.classList.add('text-gray-600');
+            });
+            
+            if (tab === 'upcoming') {
+                upcomingTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                upcomingTab.classList.remove('text-gray-600');
+            } else if (tab === 'live') {
+                liveTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                liveTab.classList.remove('text-gray-600');
+            } else {
+                completedTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                completedTab.classList.remove('text-gray-600');
+            }
+
+            loadMyTournaments(tab);
+        }
+
+        async function loadUserData() {
+            try {
+                const snapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = snapshot.val();
+                
+                if (userData) {
+                    updateWalletBalance(userData.wallet || 0);
+                    document.getElementById('profileUsername').textContent = userData.username || 'User';
+                    document.getElementById('profileEmail').textContent = userData.email || '';
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        function updateWalletBalance(balance) {
+            walletBalance.textContent = `₹${balance}`;
+            walletBalanceCard.textContent = `₹${balance}`;
+        }
+
+        async function loadTournaments() {
+            try {
+                const snapshot = await database.ref('tournaments').once('value');
+                const tournaments = snapshot.val() || {};
+                
+                const tournamentsList = document.getElementById('tournamentsList');
+                tournamentsList.innerHTML = '';
+
+                Object.entries(tournaments).forEach(([id, tournament]) => {
+                    if (tournament.status === 'Upcoming') {
+                        const tournamentCard = createTournamentCard(id, tournament);
+                        tournamentsList.appendChild(tournamentCard);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading tournaments:', error);
+            }
+        }
+
+        function createTournamentCard(id, tournament) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md border p-4';
+            
+            card.innerHTML = `
+                <div class="flex items-start space-x-4">
+                    <img src="${tournament.thumbnail || 'https://via.placeholder.com/80x80'}" 
+                         alt="${tournament.title}" 
+                         class="w-20 h-20 rounded-lg object-cover">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-800 mb-1">${tournament.title}</h3>
+                        <p class="text-sm text-gray-600 mb-2">${tournament.game}</p>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Entry: ₹${tournament.entry_fee}</span>
+                            <span class="text-green-600 font-semibold">Prize: ₹${tournament.prize_pool}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${new Date(tournament.match_time).toLocaleString()}</p>
+                        <button class="w-full mt-3 gradient-primary text-white py-2 px-4 rounded-md text-sm font-medium join-tournament-btn" 
+                                data-tournament-id="${id}">
+                            Join Now
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add event listener for join button
+            card.querySelector('.join-tournament-btn').addEventListener('click', () => {
+                showJoinTournamentModal(id, tournament);
+            });
+
+            return card;
+        }
+
+        function showJoinTournamentModal(tournamentId, tournament) {
+            currentTournament = { id: tournamentId, ...tournament };
+            
+            const tournamentDetails = document.getElementById('tournamentDetails');
+            tournamentDetails.innerHTML = `
+                <div class="text-center mb-4">
+                    <img src="${tournament.thumbnail || 'https://via.placeholder.com/120x120'}" 
+                         alt="${tournament.title}" 
+                         class="w-24 h-24 rounded-lg object-cover mx-auto mb-3">
+                    <h4 class="font-semibold text-gray-800">${tournament.title}</h4>
+                    <p class="text-sm text-gray-600">${tournament.game}</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Entry Fee:</span>
+                        <span class="font-semibold">₹${tournament.entry_fee}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Prize Pool:</span>
+                        <span class="font-semibold text-green-600">₹${tournament.prize_pool}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Match Time:</span>
+                        <span class="font-semibold">${new Date(tournament.match_time).toLocaleString()}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('joinTournamentModal').classList.remove('hidden');
+        }
+
+        function hideJoinTournamentModal() {
+            document.getElementById('joinTournamentModal').classList.add('hidden');
+        }
+
+        async function joinTournament() {
+            if (!currentTournament) return;
+
+            try {
+                // Check if user has enough balance
+                const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = userSnapshot.val();
+                
+                if (userData.wallet < currentTournament.entry_fee) {
+                    alert('Insufficient balance!');
+                    return;
+                }
+
+                // Check if user already joined
+                const participantSnapshot = await database.ref(`tournaments/${currentTournament.id}/participants/${currentUser.uid}`).once('value');
+                if (participantSnapshot.exists()) {
+                    alert('You have already joined this tournament!');
+                    return;
+                }
+
+                // Deduct entry fee and add participant
+                const newBalance = userData.wallet - currentTournament.entry_fee;
+                
+                await database.ref(`users/${currentUser.uid}/wallet`).set(newBalance);
+                await database.ref(`users/${currentUser.uid}/transactions`).push({
+                    type: 'debit',
+                    amount: currentTournament.entry_fee,
+                    description: `Entry fee for ${currentTournament.title}`,
+                    timestamp: Date.now()
+                });
+                
+                await database.ref(`tournaments/${currentTournament.id}/participants/${currentUser.uid}`).set({
+                    username: userData.username,
+                    result: 'Participated'
+                });
+
+                updateWalletBalance(newBalance);
+                hideJoinTournamentModal();
+                alert('Successfully joined tournament!');
+                loadTournaments();
+                
+            } catch (error) {
+                console.error('Error joining tournament:', error);
+                alert('Failed to join tournament!');
+            }
+        }
+
+        async function loadMyTournaments(status = 'upcoming') {
+            try {
+                const tournamentsSnapshot = await database.ref('tournaments').once('value');
+                const tournaments = tournamentsSnapshot.val() || {};
+                
+                const myTournamentsList = document.getElementById('myTournamentsList');
+                myTournamentsList.innerHTML = '';
+
+                Object.entries(tournaments).forEach(([id, tournament]) => {
+                    const participantSnapshot = database.ref(`tournaments/${id}/participants/${currentUser.uid}`);
+                    participantSnapshot.once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const participant = snapshot.val();
+                            let showTournament = false;
+                            
+                            if (status === 'upcoming' && tournament.status === 'Upcoming') {
+                                showTournament = true;
+                            } else if (status === 'live' && tournament.status === 'Live') {
+                                showTournament = true;
+                            } else if (status === 'completed' && tournament.status === 'Completed') {
+                                showTournament = true;
+                            }
+
+                            if (showTournament) {
+                                const tournamentCard = createMyTournamentCard(id, tournament, participant, status);
+                                myTournamentsList.appendChild(tournamentCard);
+                            }
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading my tournaments:', error);
+            }
+        }
+
+        function createMyTournamentCard(id, tournament, participant, status) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md border p-4';
+            
+            let statusInfo = '';
+            if (status === 'live' && tournament.room_id) {
+                statusInfo = `
+                    <div class="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p class="text-sm font-semibold text-blue-800">Room Details:</p>
+                        <p class="text-sm text-blue-600">ID: ${tournament.room_id}</p>
+                        <p class="text-sm text-blue-600">Password: ${tournament.room_password || 'N/A'}</p>
+                    </div>
+                `;
+            } else if (status === 'completed') {
+                const resultClass = participant.result === 'Winner' ? 'text-green-600' : 'text-gray-600';
+                statusInfo = `
+                    <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <p class="text-sm font-semibold ${resultClass}">Result: ${participant.result}</p>
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="flex items-start space-x-4">
+                    <img src="${tournament.thumbnail || 'https://via.placeholder.com/80x80'}" 
+                         alt="${tournament.title}" 
+                         class="w-20 h-20 rounded-lg object-cover">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-800 mb-1">${tournament.title}</h3>
+                        <p class="text-sm text-gray-600 mb-2">${tournament.game}</p>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Entry: ₹${tournament.entry_fee}</span>
+                            <span class="text-green-600 font-semibold">Prize: ₹${tournament.prize_pool}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${new Date(tournament.match_time).toLocaleString()}</p>
+                        ${statusInfo}
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function showAddMoneyModal() {
+            loadQRCode();
+            document.getElementById('addMoneyModal').classList.remove('hidden');
+        }
+
+        function hideAddMoneyModal() {
+            document.getElementById('addMoneyModal').classList.add('hidden');
+        }
+
+        async function loadQRCode() {
+            try {
+                const snapshot = await database.ref('settings/qrCodeUrl').once('value');
+                const qrCodeUrl = snapshot.val();
+                
+                const qrCodeDiv = document.getElementById('qrCode');
+                if (qrCodeUrl) {
+                    qrCodeDiv.innerHTML = `<img src="${qrCodeUrl}" alt="QR Code" class="w-full h-full object-contain rounded-lg">`;
+                } else {
+                    qrCodeDiv.innerHTML = '<i class="fas fa-qrcode text-4xl text-gray-400"></i>';
+                }
+            } catch (error) {
+                console.error('Error loading QR code:', error);
+            }
+        }
+
+        async function submitAddMoneyRequest() {
+            const transactionId = document.getElementById('transactionId').value;
+            const amount = parseFloat(document.getElementById('addAmount').value);
+
+            if (!transactionId || !amount) {
+                alert('Please fill all fields!');
+                return;
+            }
+
+            try {
+                const requestRef = database.ref('addMoneyRequests').push();
+                await requestRef.set({
+                    uid: currentUser.uid,
+                    amount: amount,
+                    txnId: transactionId,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+
+                alert('Add money request submitted! Admin will review it soon.');
+                hideAddMoneyModal();
+                
+                // Clear form
+                document.getElementById('transactionId').value = '';
+                document.getElementById('addAmount').value = '';
+            } catch (error) {
+                console.error('Error submitting add money request:', error);
+                alert('Failed to submit request!');
+            }
+        }
+
+        function showWithdrawModal() {
+            document.getElementById('withdrawModal').classList.remove('hidden');
+        }
+
+        function hideWithdrawModal() {
+            document.getElementById('withdrawModal').classList.add('hidden');
+        }
+
+        async function submitWithdrawRequest() {
+            const amount = parseFloat(document.getElementById('withdrawAmount').value);
+            const upiId = document.getElementById('upiId').value;
+
+            if (!amount || !upiId) {
+                alert('Please fill all fields!');
+                return;
+            }
+
+            try {
+                // Check if user has enough balance
+                const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = userSnapshot.val();
+                
+                if (userData.wallet < amount) {
+                    alert('Insufficient balance!');
+                    return;
+                }
+
+                const requestRef = database.ref('withdrawRequests').push();
+                await requestRef.set({
+                    uid: currentUser.uid,
+                    amount: amount,
+                    upi_id: upiId,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+
+                alert('Withdraw request submitted! Admin will process it soon.');
+                hideWithdrawModal();
+                
+                // Clear form
+                document.getElementById('withdrawAmount').value = '';
+                document.getElementById('upiId').value = '';
+            } catch (error) {
+                console.error('Error submitting withdraw request:', error);
+                alert('Failed to submit request!');
+            }
+        }
+
+        async function loadTransactionHistory() {
+            try {
+                const snapshot = await database.ref(`users/${currentUser.uid}/transactions`).once('value');
+                const transactions = snapshot.val() || {};
+                
+                const transactionHistory = document.getElementById('transactionHistory');
+                transactionHistory.innerHTML = '';
+
+                const sortedTransactions = Object.values(transactions).sort((a, b) => b.timestamp - a.timestamp);
+
+                sortedTransactions.slice(0, 10).forEach(transaction => {
+                    const transactionItem = document.createElement('div');
+                    transactionItem.className = 'flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0';
+                    
+                    const amountClass = transaction.type === 'credit' ? 'text-green-600' : 'text-red-600';
+                    const amountPrefix = transaction.type === 'credit' ? '+' : '-';
+                    
+                    transactionItem.innerHTML = `
+                        <div>
+                            <p class="text-sm font-medium text-gray-800">${transaction.description}</p>
+                            <p class="text-xs text-gray-500">${new Date(transaction.timestamp).toLocaleString()}</p>
+                        </div>
+                        <span class="font-semibold ${amountClass}">${amountPrefix}₹${transaction.amount}</span>
+                    `;
+                    
+                    transactionHistory.appendChild(transactionItem);
+                });
+            } catch (error) {
+                console.error('Error loading transaction history:', error);
+            }
+        }
+
+        function loadProfile() {
+            // Profile data is already loaded in loadUserData()
+        }
+
+        async function resetPassword() {
+            const email = prompt('Enter your email address:');
+            if (email) {
+                try {
+                    await auth.sendPasswordResetEmail(email);
+                    alert('Password reset email sent!');
+                } catch (error) {
+                    alert('Failed to send reset email: ' + error.message);
+                }
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Error logging out:', error);
+            }
+        }
+    </script>
+</body>
+</html>
