@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI MASTER 2.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(45deg, #4c68d7, #6a82fb);
+            --text-color: #333;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --green-color: #28a745;
+            --blue-color: #007bff;
+        }
+        body { font-family: 'Roboto', sans-serif; margin: 0; background-color: var(--bg-color); color: var(--text-color); }
+        .container { padding: 15px; }
+        .toolbar { display: flex; align-items: center; justify-content: space-between; background: var(--primary-gradient); padding: 12px 18px; box-shadow: 0 4px 10px rgba(76, 104, 215, 0.3); position: sticky; top: 0; z-index: 100; }
+        .toolbar-brand { display: flex; align-items: center; }
+        .toolbar img { width: 40px; height: 40px; margin-right: 15px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
+        .toolbar h1 { font-family: 'Poppins', sans-serif; font-size: 1.6em; margin: 0; color: #ffffff; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+        .user-icon { height: 32px; width: 32px; color: white; cursor: pointer; user-select: none; }
+        .search-bar { margin: 15px; }
+        .search-bar input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; box-sizing: border-box; }
+        .grid-view { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        @keyframes itemLoadAnimation {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .grid-item { 
+            background-color: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer; overflow: hidden; position: relative; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            opacity: 0; animation: itemLoadAnimation 0.5s ease-out forwards;
+        }
+
+        .grid-item:hover { transform: translateY(-5px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+        .grid-item img { width: 100%; height: 120px; object-fit: cover; background-color: #eee; }
+        .grid-item .content { padding: 10px; }
+        .grid-item .title { font-weight: 500; font-size: 1.1em; margin: 0 0 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-footer { display: flex; justify-content: space-between; align-items: center; }
+        .item-price-details { display: flex; align-items: center; gap: 8px; }
+        .item-price-details .price { font-size: 1.2em; font-weight: 700; }
+        .item-price-details .label-inline { background-color: var(--green-color); color: white; padding: 3px 6px; border-radius: 5px; font-size: 0.7em; font-weight: bold; }
+        .item-like-container { display: flex; align-items: center; gap: 4px; font-size: 0.9em; color: #666; cursor: pointer; }
+        .item-like-container .like-icon { font-size: 1.4em; color: #ff4d4d; }
+        .screen { display: none; }
+        #main-ui { display: block; }
+        #detailsScreen, #downloadsScreen, #complaintScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-color); overflow-y: auto; z-index: 200; }
+        .details-header, .downloads-header, .complaint-header { display: flex; align-items: center; padding: 12px 18px; background: var(--primary-gradient); color: white; box-shadow: 0 4px 10px rgba(76, 104, 215, 0.3); }
+        .back-icon { font-size: 24px; cursor: pointer; font-weight: bold; margin-right: 15px; }
+        .header-title { font-size: 1.4em; font-weight: bold; }
+        .horizontal-gallery-container { padding: 20px 0; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .horizontal-gallery-container::-webkit-scrollbar { display: none; }
+        .gallery-item { display: inline-block; width: 55%; aspect-ratio: 9 / 16; margin-left: 15px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .gallery-item:last-child { margin-right: 15px; }
+        .gallery-image { width: 100%; height: 100%; object-fit: cover; }
+        .details-content-wrapper { padding: 15px; }
+        .details-info-card { background-color: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: var(--shadow); }
+        .details-title { font-family: 'Roboto', sans-serif; font-size: 2em; font-weight: 700; margin: 0 0 15px 0; }
+        .actions-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .price-tag { display: flex; align-items: center; gap: 10px; font-size: 1.8em; font-weight: 700; }
+        .price-tag .label { background-color: var(--green-color); color: white; font-size: 0.5em; padding: 6px 10px; border-radius: 5px; font-weight: bold; }
+        .details-icon-group { display: flex; align-items: center; gap: 20px; }
+        .like-container, .share-container { text-align: center; cursor: pointer; }
+        .details-like-icon, .details-share-icon { font-size: 28px; }
+        .details-like-icon { color: #ff4d4d; }
+        .details-share-icon { color: #555; }
+        .icon-label { font-size: 0.9em; color: #666; }
+        .details-description { line-height: 1.6; margin-bottom: 20px; }
+        .download-container { background-color: #e9f5ff; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        .download-link { background-color: var(--blue-color); color: white; padding: 12px 20px; border-radius: 5px; text-decoration: none; font-weight: 500; display: inline-block; }
+        .buy-now-btn, .complaint-submit-btn { width: 100%; padding: 15px; background-color: var(--green-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.2em; font-weight: bold; }
+        .complaint-submit-btn:disabled { background-color: #94d3a2; cursor: not-allowed; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 400; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .modal-content h2 { font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 1.5em; margin-top: 0; margin-bottom: 25px; }
+        
+        /* --- UPDATED RULE --- */
+        .modal-content input, .form-group select, .form-group textarea, .form-group input { 
+            width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1em; 
+            margin-bottom: 15px; /* This adds space below each input */
+        }
+        
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; font-weight: 500; }
+        .btn-submit { background-color: var(--blue-color); color: white; }
+        .btn-cancel { background-color: #6c757d; color: white; }
+        #sidebar { height: 100%; width: 250px; position: fixed; z-index: 500; top: 0; right: -250px; background-color: var(--card-bg); overflow-x: hidden; transition: 0.3s ease-out; box-shadow: -4px 0 15px rgba(0,0,0,0.1); padding-top: 0; }
+        .sidebar-header { background: var(--primary-gradient); color: white; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-header h2 { margin: 0; font-family: 'Poppins', sans-serif; font-size: 1.4em; }
+        #sidebar .closebtn { position: static; font-size: 30px; color: white; text-decoration: none; padding: 0 5px; }
+        .sidebar-item { display: flex; align-items: center; padding: 15px 20px; text-decoration: none; font-size: 17px; color: var(--text-color); transition: 0.2s; border-bottom: 1px solid #f0f0f0; }
+        .sidebar-item:hover { background-color: #f1f1f1; }
+        .sidebar-icon { width: 22px; height: 22px; margin-right: 15px; fill: currentColor; opacity: 0.8; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 499; transition: opacity 0.3s; }
+        #downloadsList { padding: 15px; }
+        .download-item { display: flex; background-color: var(--card-bg); border-radius: 8px; padding: 10px; margin-bottom: 10px; box-shadow: var(--shadow); align-items: center; }
+        .download-item img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px; }
+        .download-item-info h4 { margin: 0 0 10px 0; }
+        .form-container { padding: 15px; }
+        .form-card { background-color: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: var(--shadow); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; text-align: left; margin-bottom: 8px; font-weight: 500; font-size: 1.1em; }
+        .custom-file-upload { border: 1px solid #ccc; display: inline-block; padding: 8px 15px; cursor: pointer; background-color: #f0f0f0; border-radius: 5px; font-weight: 500; }
+        input[type="file"] { display: none; }
+        #fileNameDisplay { margin-left: 10px; color: #555; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div id="main-ui" class="screen">
+        <div class="toolbar"><div class="toolbar-brand"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiFnLyOzDs8gngq68zI1_8u7SO4mfC9px6iu7PVw80j34_fn6nDMACws-JUTukEFycCzDtK8SX6re_Sm9glmmpSxHQTRFN-ErgTBRCpY-v1U77FgSv358Etg2sMa5wCyVRIpvAIpMisHyIm82ZWO8uNdOHyl6h41qz3QTirAA-aabErONcKxxUOvYDZRvE/s850/1000166545.png" alt="Icon"><h1>AI MASTER 2.0</h1></div><div class="user-icon" onclick="toggleSidebar()"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="currentColor" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/></svg></div></div>
+        <div class="search-bar"><input type="text" id="searchInput" onkeyup="searchProducts()" placeholder="Search..."></div>
+        <div class="container" style="padding-top:0;"><div class="grid-view" id="productGrid"></div></div>
+    </div>
+    
+    <div id="overlay" onclick="toggleSidebar()"></div>
+    
+    <div id="sidebar">
+        <div class="sidebar-header"><h2>Menu</h2><a href="javascript:void(0)" class="closebtn" onclick="toggleSidebar()">&times;</a></div>
+        <a href="#" id="myDownloadsLink" class="sidebar-item" onclick="showDownloadsScreen()"><svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.44 2.78 3.03 0 1.65-1.35 3-3 3zm-5.55-8h-2.9v3H8l4 4 4-4h-2.55z"/></svg>My Downloads</a>
+        <a href="https://t.me/aimasterdpk" target="_blank" class="sidebar-item"><svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.933 3.633a.5.5 0 0 0-.626-.445L2.57 9.875a.5.5 0 0 0 .016.929l4.98 1.868 1.868 4.98a.5.5 0 0 0 .929.016l6.688-18.738a.5.5 0 0 0-.444-.626zM4.781 10.491l13.34-5.336-10.237 10.237-2.03-5.414 5.414-2.03L4.78 10.49z"/></svg>Contact Us</a>
+        <a href="#" id="addComplaintLink" class="sidebar-item" onclick="showComplaintScreen()"><svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22 4c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4zm-2 13.17L18.83 16H4V4h16v13.17zM11 5h2v6h-2V5zm0 8h2v2h-2v-2z"/></svg>Add Complaint</a>
+        <a href="#" id="authLink" class="sidebar-item" onclick="showAuthModal()"><svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Login / Sign Up</a>
+    </div>
+
+    <div id="detailsScreen" class="screen"></div>
+    <div id="downloadsScreen" class="screen"></div>
+    
+    <div id="complaintScreen" class="screen">
+        <div class="complaint-header"><div class="back-icon" onclick="goBack()">&#8592;</div><div class="header-title">Register Complaint</div></div>
+        <div class="form-container">
+            <div class="form-card">
+                <p style="text-align: center; margin-top: 0; color: #555;">Please provide details about your issue.</p>
+                <form id="complaintForm" onsubmit="event.preventDefault(); submitComplaint();">
+                    <div class="form-group"><label for="complaintType">Complaint Type</label><select id="complaintType" required><option value="">Loading types...</option></select></div>
+                    <div class="form-group"><label for="complaintPaymentId">Payment ID*</label><input type="text" id="complaintPaymentId" placeholder="e.g., pay_..." required></div>
+                    <div class="form-group"><label for="complaintImageFile">Attach Screenshot (Optional)</label><input type="file" id="complaintImageFile" accept="image/*" onchange="updateFileName(this)"><label for="complaintImageFile" class="custom-file-upload">Choose File</label><span id="fileNameDisplay">No file chosen</span></div>
+                    <div class="form-group"><label for="complaintMessage">Message</label><textarea id="complaintMessage" rows="5" placeholder="Describe your issue..."></textarea></div>
+                    <button type="submit" id="complaintSubmitBtn" class="complaint-submit-btn">Submit Complaint</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="authModal" class="modal">
+        <div class="modal-content"><h2 id="authTitle">Login</h2><input type="email" id="authEmail" placeholder="Email ID" required><input type="password" id="authPassword" placeholder="Password" required><div class="modal-buttons"><button class="btn-submit" id="authSubmitBtn" onclick="handleAuth()">Submit</button><button class="btn-cancel" onclick="closeModal('authModal')">Cancel</button></div><p style="margin-top: 15px;"><a href="#" id="authToggleLink" onclick="toggleAuthMode()">Need an account? Sign Up</a></p></div>
+    </div>
+    
+    <div id="dialogBox" class="modal"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyC3KRKS9zXXHfVJnYdZSM_prdcxvfN0gL8", authDomain: "aimaster-7ffaf.firebaseapp.com", databaseURL: "https://aimaster-7ffaf-default-rtdb.firebaseio.com", projectId: "aimaster-7ffaf", storageBucket: "aimaster-7ffaf.appspot.com", messagingSenderId: "963488826729", appId: "1:963488826729:web:0c690774cd50209d33a9f8" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+        
+        let allProducts = [], currentProduct = null, userOrders = [], userProductGrants = {};
+        let isAuthModeLogin = true;
+
+        auth.onAuthStateChanged(user => {
+            const authLink = document.getElementById('authLink');
+            const authIcon = authLink.querySelector('.sidebar-icon');
+            if (user) {
+                authLink.lastChild.textContent = " Logout";
+                authIcon.innerHTML = `<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>`;
+                authLink.onclick = (e) => { e.preventDefault(); logout(); };
+                fetchUserOrders(user.uid);
+                fetchUserGrants(user.uid);
+            } else {
+                authLink.lastChild.textContent = " Login / Sign Up";
+                authIcon.innerHTML = `<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>`;
+                authLink.onclick = (e) => { e.preventDefault(); showAuthModal(); };
+                userOrders = [];
+                userProductGrants = {};
+            }
+        });
+
+        const productsRef = db.ref('products');
+        productsRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            allProducts = data ? Object.keys(data).reverse().map(key => ({ id: key, ...data[key] })) : [];
+            const urlParams = new URLSearchParams(window.location.search);
+            const productIdFromUrl = urlParams.get('product');
+            if (productIdFromUrl && allProducts.some(p => p.id === productIdFromUrl)) { showDetails(productIdFromUrl); } else { renderProducts(allProducts); showScreen('main-ui'); }
+        });
+
+        function fetchUserOrders(userId) {
+            db.ref('orders').orderByChild('userId').equalTo(userId).on('value', snapshot => {
+                userOrders = snapshot.exists() ? Object.values(snapshot.val()) : [];
+                if (currentProduct && document.getElementById('detailsScreen').style.display === 'block') { showDetails(currentProduct.id); }
+            });
+        }
+        
+        function fetchUserGrants(userId) {
+            const grantsRef = db.ref('user_products/' + userId);
+            grantsRef.on('value', snapshot => {
+                userProductGrants = snapshot.val() || {};
+                if (currentProduct && document.getElementById('detailsScreen').style.display === 'block') { showDetails(currentProduct.id); }
+            });
+        }
+        
+        function renderProducts(products) {
+            const grid = document.getElementById("productGrid");
+            if (!grid) return;
+            grid.innerHTML = "";
+            if (!products || products.length === 0) { grid.innerHTML = "<p>No products found.</p>"; return; }
+            const likedProducts = JSON.parse(localStorage.getItem('likedProducts')) || [];
+            products.forEach((p, index) => {
+                if (!p.coverImage || !p.title) return;
+                const isLiked = likedProducts.includes(p.id);
+                const likeIcon = isLiked ? '&#10084;' : '&#9825;';
+                grid.innerHTML += `<div class="grid-item" onclick="showDetails('${p.id}')" style="animation-delay: ${index * 50}ms"><img src="${p.coverImage}" alt="${p.title}"><div class="content"><div class="title">${p.title}</div><div class="item-footer"><div class="item-price-details"><span class="price">₹${p.price||0}</span>${p.label ? `<span class="label-inline">${p.label}</span>` : ''}</div><div class="item-like-container" onclick="toggleLikeFromGrid(event, '${p.id}')"><span class="like-icon" id="like-icon-${p.id}">${likeIcon}</span><span id="like-count-${p.id}">${p.likes || 0}</span></div></div></div></div>`;
+            });
+        }
+
+        function showDetails(productId) {
+            currentProduct = allProducts.find(p => p.id === productId);
+            if (!currentProduct) { goBack(); return; }
+            const hasOrder = userOrders.some(order => order.productId === productId);
+            const hasGrant = userProductGrants[productId] === true;
+            const isPurchased = hasOrder || hasGrant;
+            const imageUrls = [currentProduct.coverImage, ...(Array.isArray(currentProduct.images) ? currentProduct.images : [])].filter(Boolean);
+            let galleryItemsHtml = imageUrls.map(url => `<div class="gallery-item"><img class="gallery-image" src="${url}"></div>`).join('');
+            const liked = (JSON.parse(localStorage.getItem('likedProducts')) || []).includes(productId);
+            let actionButtonsHtml = '';
+            if (isPurchased && currentProduct.downloadableFile) { actionButtonsHtml = `<div class="download-container"><a href="${currentProduct.downloadableFile}" class="download-link" download>Download Now</a></div>`; } else if (currentProduct.price > 0) { actionButtonsHtml = `<button class="buy-now-btn" onclick="handleBuyNow()">Buy Now</button>`; } else if (currentProduct.downloadableFile) { actionButtonsHtml = `<div class="download-container"><a href="${currentProduct.downloadableFile}" class="download-link" download>Download for Free</a></div>`;}
+            document.getElementById("detailsScreen").innerHTML = `<div class="details-header"><div class="back-icon" onclick="goBack()">&#8592;</div></div><div class="horizontal-gallery-container">${galleryItemsHtml}</div><div class="details-content-wrapper"><div class="details-info-card"><div class="details-title">${currentProduct.title}</div><div class="actions-row"><div class="price-tag">₹${currentProduct.price||0} ${currentProduct.label ? `<span class="label">${currentProduct.label}</span>` : ''}</div><div class="details-icon-group"><div class="like-container" onclick="toggleLike('${currentProduct.id}')"><div class="details-like-icon" id="likeIcon">${liked?'&#10084;':'&#9825;'}</div><div class="icon-label" id="likeCount">${currentProduct.likes || 0} likes</div></div><div class="share-container" onclick="shareProduct()"><div class="details-share-icon">&#128279;</div><div class="icon-label">Share</div></div></div></div><p class="details-description">${currentProduct.description||''}</p>${actionButtonsHtml}</div></div>`;
+            showScreen('detailsScreen');
+        }
+        
+        function handleBuyNow() {
+            if (auth.currentUser) {
+                const dialog = document.getElementById("dialogBox");
+                dialog.innerHTML = `<div class="modal-content"><h2>Confirm Purchase</h2><p>You are about to purchase:</p><h4 style="margin: 5px 0 20px 0;">${currentProduct.title}</h4><p><strong>Price: ₹${currentProduct.price}</strong></p><div class="modal-buttons" style="margin-top: 25px;"><button class="btn-submit" onclick="proceedToPayment()">Confirm & Pay</button><button class="btn-cancel" onclick="closeModal('dialogBox')">Cancel</button></div></div>`;
+                dialog.style.display = "flex";
+            } else { openAuthModal(); }
+        }
+        
+        function proceedToPayment() { closeModal('dialogBox'); startPayment(); }
+
+        function startPayment() {
+            const user = auth.currentUser;
+            if (!user) return alert("Please login to continue.");
+            var options = { key: "rzp_live_wygJUJh3ZbUEUX", amount: currentProduct.price * 100, currency: "INR", name: "AI MASTER 2.0", description: "Payment for " + currentProduct.title, image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiFnLyOzDs8gngq68zI1_8u7SO4mfC9px6iu7PVw80j34_fn6nDMACws-JUTukEFycCzDtK8SX6re_Sm9glmmpSxHQTRFN-ErgTBRCpY-v1U77FgSv358Etg2sMa5wCyVRIpvAIpMisHyIm82ZWO8uNdOHyl6h41qz3QTirAA-aabErONcKxxUOvYDZRvE/s850/1000166545.png",
+                handler: function (response) {
+                    db.ref("orders").push({ userId: user.uid, productId: currentProduct.id, productTitle: currentProduct.title, productCoverImage: currentProduct.coverImage, price: currentProduct.price, userEmail: user.email, paymentId: response.razorpay_payment_id, timestamp: firebase.database.ServerValue.TIMESTAMP
+                    }).then(() => {
+                        alert("Payment Successful! Your download will start automatically.");
+                        const link = document.createElement('a');
+                        link.href = currentProduct.downloadableFile;
+                        link.setAttribute('download', '');
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }).catch(e => alert(e.message));
+                },
+                prefill: { email: user.email }, theme: { color: "#4c68d7" }
+            };
+            new Razorpay(options).on('payment.failed', r => alert("Payment failed: " + r.error.description)).open();
+        }
+
+        function showDownloadsScreen() {
+            toggleSidebar();
+            if (!auth.currentUser) { return openAuthModal(); }
+            
+            const downloadableProductIds = new Set();
+            userOrders.forEach(order => downloadableProductIds.add(order.productId));
+            Object.keys(userProductGrants).forEach(productId => { if(userProductGrants[productId] === true) downloadableProductIds.add(productId); });
+
+            const downloadableProducts = Array.from(downloadableProductIds).map(id => allProducts.find(p => p.id === id)).filter(Boolean);
+
+            let content = `<div class="downloads-header"><div class="back-icon" onclick="goBack()">&#8592;</div><div class="header-title">My Downloads</div></div>`;
+            content += '<div id="downloadsList">';
+            if (downloadableProducts.length > 0) {
+                downloadableProducts.forEach(p => { content += `<div class="download-item"><img src="${p.coverImage}" alt="${p.title}"><div class="download-item-info"><h4>${p.title}</h4><a href="${p.downloadableFile}" class="download-link" style="padding: 8px 15px;" download>Download</a></div></div>`; });
+            } else { content += '<p style="text-align:center; padding: 20px;">You have no purchased or granted items.</p>'; }
+            content += '</div>';
+            document.getElementById('downloadsScreen').innerHTML = content;
+            showScreen('downloadsScreen');
+        }
+
+        function showComplaintScreen() {
+            toggleSidebar();
+            if (!auth.currentUser) { return openAuthModal(); }
+            showScreen('complaintScreen');
+            const select = document.getElementById('complaintType');
+            select.innerHTML = '<option value="">Loading types...</option>';
+            db.ref('complaintTypes').once('value', snapshot => {
+                if (snapshot.exists()) {
+                    select.innerHTML = '<option value="">-- Select a reason --</option>';
+                    snapshot.forEach(child => { select.innerHTML += `<option value="${child.val()}">${child.val()}</option>`; });
+                } else { select.innerHTML = '<option value="">No types available</option>'; }
+            });
+        }
+
+        function updateFileName(input) { const fileNameDisplay = document.getElementById('fileNameDisplay'); if (input.files.length > 0) { fileNameDisplay.textContent = input.files[0].name; } else { fileNameDisplay.textContent = 'No file chosen'; } }
+        const toBase64 = file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error); });
+
+        async function submitComplaint() {
+            const user = auth.currentUser;
+            if (!user) { return alert("Please login to submit a complaint."); }
+            const submitBtn = document.getElementById('complaintSubmitBtn');
+            const type = document.getElementById('complaintType').value;
+            const paymentId = document.getElementById('complaintPaymentId').value;
+            const message = document.getElementById('complaintMessage').value;
+            const file = document.getElementById('complaintImageFile').files[0];
+            if (!type || !paymentId) { return alert("Please select a complaint type and enter a payment ID."); }
+            submitBtn.disabled = true; submitBtn.textContent = 'Submitting...';
+            try {
+                let imageBase64 = '';
+                if (file) { submitBtn.textContent = 'Processing Image...'; imageBase64 = await toBase64(file); }
+                const complaintData = { type, paymentId, message, imageBase64, userEmail: user.email, userId: user.uid, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                await db.ref('complaints').push(complaintData);
+                const dialog = document.getElementById("dialogBox");
+                dialog.innerHTML = `<div class="modal-content"><h2>Complaint Submitted</h2><p>Apka complain ko verify Kiya jayega uske baad apka complain ko swikar kiya jayega.</p><div class="modal-buttons" style="margin-top: 25px;"><button class="btn-submit" onclick="goBack(); closeModal('dialogBox');">OK</button></div></div>`;
+                dialog.style.display = "flex";
+                document.getElementById('complaintForm').reset();
+                document.getElementById('fileNameDisplay').textContent = 'No file chosen';
+            } catch (error) { console.error("Complaint submission failed:", error); alert("An error occurred: " + error.message);
+            } finally { submitBtn.disabled = false; submitBtn.textContent = 'Submit Complaint'; }
+        }
+        
+        function shareProduct() { const productUrl = `${window.location.origin}${window.location.pathname}?product=${currentProduct.id}`; if (navigator.share) { navigator.share({ title: currentProduct.title, text: `Check out: ${currentProduct.title}`, url: productUrl }).catch(err => { if (err.name !== 'AbortError') console.error('Share failed:', err); }); } else { navigator.clipboard.writeText(productUrl).then(() => alert('Product link copied to clipboard!')); } }
+        function toggleSidebar() { const sidebar = document.getElementById("sidebar"); const overlay = document.getElementById("overlay"); const isVisible = sidebar.style.right === "0px"; sidebar.style.right = isVisible ? "-250px" : "0px"; overlay.style.display = isVisible ? "none" : "block"; }
+        function showAuthModal() { toggleSidebar(); openAuthModal(); }
+        function openAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+        function toggleAuthMode() { isAuthModeLogin = !isAuthModeLogin; document.getElementById('authTitle').innerText = isAuthModeLogin ? 'Login' : 'Sign Up'; document.getElementById('authSubmitBtn').innerText = isAuthModeLogin ? 'Login' : 'Sign Up'; document.getElementById('authToggleLink').innerText = isAuthModeLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'; }
+        
+        function handleAuth() {
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPassword').value;
+            if (!email || !pass) return alert("Please fill all fields.");
+            const promise = isAuthModeLogin ? auth.signInWithEmailAndPassword(email, pass) : auth.createUserWithEmailAndPassword(email, pass);
+            promise.then((userCredential) => {
+                if (!isAuthModeLogin) {
+                    db.ref('users/' + userCredential.user.uid).set({
+                        email: email,
+                        registeredAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
+                closeModal('authModal');
+            }).catch(error => {
+                const errorCode = error.code || '';
+                if (isAuthModeLogin && (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found' || errorCode.includes('INVALID_LOGIN_CREDENTIALS'))) { alert("Oops! Aapne galat Email ya Password dala hai, ek baar fir try karein. Nehi to account create karen"); } else if (errorCode === 'auth/email-already-in-use') { alert("Is email se account pehle se maujood hai. Kripya login karein."); } else { alert("Ek anjaan truti hui. Kripya dobara koshish karein."); }
+            });
+        }
+        
+        function logout() { auth.signOut().then(() => { userOrders = []; userProductGrants = {}; toggleSidebar(); }); }
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.style.display = 'none'); document.getElementById(id).style.display = 'block'; }
+        function goBack(){ history.pushState(null, '', window.location.pathname); showScreen('main-ui'); }
+        function closeModal(id){ document.getElementById(id).style.display="none"; }
+        function closeDialog(){ closeModal("dialogBox"); showDetails(currentProduct.id); }
+        function searchProducts() { const term = document.getElementById('searchInput').value.toUpperCase(); renderProducts(allProducts.filter(p => p.title.toUpperCase().includes(term))); }
+        function toggleLikeFromGrid(e, id) { e.stopPropagation(); updateLikes(id); }
+        function toggleLike(id) { updateLikes(id); }
+        function updateLikes(productId) {
+            const likedProducts = JSON.parse(localStorage.getItem("likedProducts")) || [];
+            const isLiking = !likedProducts.includes(productId);
+            if (isLiking) likedProducts.push(productId);
+            else { const index = likedProducts.indexOf(productId); if (index > -1) likedProducts.splice(index, 1); }
+            localStorage.setItem("likedProducts", JSON.stringify(likedProducts));
+            const gridIcon = document.getElementById(`like-icon-${productId}`);
+            const detailsIcon = document.getElementById('likeIcon');
+            if (gridIcon) gridIcon.innerHTML = isLiking ? '&#10084;' : '&#9825;';
+            if (detailsIcon) detailsIcon.innerHTML = isLiking ? '&#10084;' : '&#9825;';
+            db.ref(`products/${productId}/likes`).set(firebase.database.ServerValue.increment(isLiking ? 1 : -1));
+        }
+    </script>
+</body>
+</html>

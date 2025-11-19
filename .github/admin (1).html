@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(45deg, #4c68d7, #6a82fb);
+            --text-color: #333;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--bg-color); }
+        .container { padding: 20px; }
+        .screen { display: none; }
+        #loginScreen { display: block; }
+        .login-container { max-width: 400px; margin: 50px auto; padding: 20px; background: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow); }
+        input, textarea, button, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em; }
+        .search-bar { margin-bottom: 20px; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .admin-header { display: flex; align-items: center; justify-content: space-between; background: var(--primary-gradient); color: white; padding: 12px 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .admin-header h1 { margin: 0; font-size: 1.4em; font-weight: bold; }
+        .header-icon { font-size: 24px; font-weight: bold; cursor: pointer; padding: 5px; user-select: none; }
+        .admin-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .menu-item { background-color: var(--card-bg); padding: 15px; text-align: center; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); cursor: pointer; font-weight: 500; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+        .menu-item:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .menu-item svg { width: 32px; height: 32px; color: #007bff; }
+        .list-item, .user-item, .product-access-item { display: flex; align-items: center; background: var(--card-bg); padding: 12px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .list-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; margin-right: 15px; }
+        .list-item .info, .user-item .info { flex-grow: 1; }
+        .list-item .actions button, .user-item .actions button { width: auto; padding: 8px 12px; font-size: 0.9em; margin-left: 5px; }
+        .btn-edit { background-color: #ffc107; }
+        .btn-delete { background-color: #dc3545; }
+        .btn-save { background-color: #28a745; margin-top: 15px; }
+        .notification-badge { position: absolute; top: 8px; right: 8px; background-color: #dc3545; color: white; border-radius: 12px; padding: 2px 8px; font-size: 12px; font-weight: bold; border: 2px solid white; min-width: 12px; text-align: center; display: none; }
+        .complaint-item { background: var(--card-bg); border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .complaint-summary { padding: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .complaint-details { padding: 0 15px 15px; border-top: 1px solid #eee; display: none; }
+        .complaint-details p { margin: 8px 0; word-wrap: break-word; }
+        .complaint-details strong { color: #333; }
+        .type-manager-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 8px; }
+        .product-access-item .info { flex-grow: 1; }
+        .product-access-item .access-controls { display: flex; gap: 15px; align-items: center; }
+        .product-access-item label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .dropdown-menu { display: none; position: absolute; top: 60px; right: 15px; background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 110; overflow: hidden; }
+        .dropdown-menu a { display: block; padding: 12px 20px; color: var(--text-color); text-decoration: none; }
+        .dropdown-menu a:hover { background-color: #f0f2f5; }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="screen">
+        <div class="admin-header"><h1>Admin Login</h1></div>
+        <div class="login-container">
+            <input type="email" id="adminEmail" placeholder="Email">
+            <input type="password" id="adminPassword" placeholder="Password">
+            <button onclick="adminLogin()">Login</button>
+        </div>
+    </div>
+
+    <div id="adminDashboard" class="screen">
+        <div class="admin-header"><h1>Dashboard</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container">
+            <div class="admin-menu">
+                <div class="menu-item" onclick="showScreen('addProductScreen')"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H5V5h14v14zM11 13H8v-2h3V8h2v3h3v2h-3v3h-2v-3z"/></svg>Add Product</div>
+                <div class="menu-item" onclick="loadOrders()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>Orders<span id="order-badge" class="notification-badge"></span></div>
+                <div class="menu-item" onclick="showScreen('editDeleteScreen'); loadProductsForEdit();"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>Edit/Delete</div>
+                <div class="menu-item" onclick="loadComplaints()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>View Complaints<span id="complaint-badge" class="notification-badge"></span></div>
+                <div class="menu-item" onclick="showScreen('manageComplaintTypesScreen'); loadComplaintTypesManager();"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>Manage Types</div>
+                <div class="menu-item" onclick="loadUsers()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>All Users</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addProductScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('adminDashboard')">&#8592;</span><h1 id="formTitle">Add Product</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container"><form id="productForm"><input type="text" id="productTitle" placeholder="Title" required><textarea id="productDescription" placeholder="Description" rows="4"></textarea><input type="number" id="productPrice" placeholder="Price" required><input type="text" id="productLabel" placeholder="Label"><input type="url" id="productCoverImage" placeholder="Cover Image URL" required><textarea id="productImages" placeholder="Additional Image URLs"></textarea><input type="url" id="productFile" placeholder="Downloadable File URL"></form><button id="submitProductBtn" onclick="submitProduct()">Submit</button></div>
+    </div>
+
+    <div id="ordersScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('adminDashboard')">&#8592;</span><h1>Orders</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container" id="ordersList"></div>
+    </div>
+
+    <div id="editDeleteScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('adminDashboard')">&#8592;</span><h1>Edit & Delete Products</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container" id="editDeleteList"></div>
+    </div>
+
+    <div id="complaintsScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('adminDashboard')">&#8592;</span><h1>Complaints</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container" id="complaintsList"></div>
+    </div>
+
+    <div id="manageComplaintTypesScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('adminDashboard')">&#8592;</span><h1>Manage Complaint Types</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container"><div style="display: flex; gap: 10px; margin-bottom: 20px;"><input type="text" id="newComplaintType" placeholder="New Complaint Type"><button onclick="addComplaintType()" style="width: auto; padding: 0 20px;">Add</button></div><div id="complaintTypesList"></div></div>
+    </div>
+    
+    <div id="usersScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('adminDashboard')">&#8592;</span><h1>All Users</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container"><div class="search-bar"><input type="text" id="userSearchInput" onkeyup="searchUsers()" placeholder="Search by email..."></div><div id="usersList"></div></div>
+    </div>
+    
+    <div id="editUserAccessScreen" class="screen">
+        <div class="admin-header"><span class="header-icon back-icon" onclick="showScreen('usersScreen')">&#8592;</span><h1 id="editUserAccessTitle">Edit Access</h1><span class="header-icon" onclick="toggleLogoutMenu()">&#8942;</span></div>
+        <div class="container"><div id="userProductAccessList"></div><button class="btn-save" onclick="saveUserAccess()">Save Changes</button></div>
+    </div>
+    
+    <div class="dropdown-menu" id="logoutMenu"><a href="#" onclick="adminLogout()">Logout</a></div>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyC3KRKS9zXXHfVJnYdZSM_prdcxvfN0gL8", authDomain: "aimaster-7ffaf.firebaseapp.com", databaseURL: "https://aimaster-7ffaf-default-rtdb.firebaseio.com", projectId: "aimaster-7ffaf", storageBucket: "aimaster-7ffaf.appspot.com", messagingSenderId: "963488826729", appId: "1:963488826729:web:0c690774cd50209d33a9f8" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+        let editingProductId = null, currentEditingUserId = null, ordersRef, complaintsRef;
+
+        function updateBadge(badgeId, localStorageKey, totalCount) { const seenCount = parseInt(localStorage.getItem(localStorageKey) || '0'); const newCount = totalCount - seenCount; const badge = document.getElementById(badgeId); if (badge) { if (newCount > 0) { badge.innerText = newCount; badge.style.display = 'block'; } else { badge.style.display = 'none'; } } }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                showScreen('adminDashboard');
+                ordersRef = db.ref('orders');
+                complaintsRef = db.ref('complaints');
+                ordersRef.on('value', snapshot => { updateBadge('order-badge', 'seenOrdersCount', snapshot.numChildren()); });
+                complaintsRef.on('value', snapshot => { updateBadge('complaint-badge', 'seenComplaintsCount', snapshot.numChildren()); });
+            } else {
+                showScreen('loginScreen');
+                if(ordersRef) ordersRef.off();
+                if(complaintsRef) complaintsRef.off();
+            }
+        });
+
+        function showScreen(screenId) { document.querySelectorAll('.screen').forEach(s => s.style.display = 'none'); document.getElementById(screenId).style.display = 'block';}
+        function adminLogin() { auth.signInWithEmailAndPassword(document.getElementById("adminEmail").value, document.getElementById("adminPassword").value).catch(e => alert(e.message)); }
+        function adminLogout() { toggleLogoutMenu(); localStorage.removeItem('seenOrdersCount'); localStorage.removeItem('seenComplaintsCount'); auth.signOut(); }
+        function toggleLogoutMenu() { const menu = document.getElementById('logoutMenu'); menu.style.display = menu.style.display === 'block' ? 'none' : 'block'; }
+        window.onclick = function(event) { if (!event.target.matches('.header-icon')) { const dropdown = document.getElementById("logoutMenu"); if (dropdown.style.display === 'block') { dropdown.style.display = 'none'; } } }
+
+        function prepareAddProduct() { editingProductId = null; document.getElementById('formTitle').innerText = 'Add Product'; document.getElementById('submitProductBtn').innerText = 'Submit'; document.getElementById('productForm').reset(); }
+        function submitProduct() { const productData = { title: document.getElementById("productTitle").value, description: document.getElementById("productDescription").value, price: Number(document.getElementById("productPrice").value), label: document.getElementById("productLabel").value, coverImage: document.getElementById("productCoverImage").value, images: document.getElementById("productImages").value.split(',').map(s => s.trim()).filter(Boolean), downloadableFile: document.getElementById("productFile").value }; if (!productData.title || !productData.coverImage) return alert("Title and Cover Image are required."); const task = editingProductId ? db.ref('products/' + editingProductId).update(productData) : db.ref('products').push(productData); task.then(() => { alert(`Product ${editingProductId ? 'updated' : 'added'}!`); showScreen('adminDashboard'); }).catch(e => alert(e.message)); }
+        
+        function loadOrders() {
+            showScreen('ordersScreen');
+            db.ref('orders').once('value').then(s => localStorage.setItem('seenOrdersCount', s.numChildren()));
+            updateBadge('order-badge', 'seenOrdersCount', 0);
+            db.ref("orders").orderByChild("timestamp").once("value", snapshot => { const list = document.getElementById("ordersList"); list.innerHTML = ""; let ordersHtml = ""; snapshot.forEach(child => { const order = child.val(); const orderTime = new Date(order.timestamp).toLocaleString(); ordersHtml = `<div class="list-item"><img src="${order.productCoverImage}" alt="${order.productTitle}"><div class="info"><h4>${order.productTitle}</h4><p>₹${order.price} | ${order.userEmail}</p><small>${orderTime}</small></div></div>` + ordersHtml; }); list.innerHTML = ordersHtml || "<p>No orders found.</p>"; });
+        }
+        
+        function loadProductsForEdit() { db.ref("products").once("value", snapshot => { const list = document.getElementById("editDeleteList"); list.innerHTML = ""; snapshot.forEach(child => { const product = child.val(); list.innerHTML += `<div class="list-item"><img src="${product.coverImage}" alt="${product.title}"><div class="info"><h4>${product.title}</h4></div><div class="actions"><button class="btn-edit" onclick="editProduct('${child.key}')">Edit</button><button class="btn-delete" onclick="deleteProduct('${child.key}')">Delete</button></div></div>`; }); list.innerHTML = list.innerHTML || "<p>No products to edit.</p>"; }); }
+        function editProduct(productId) { db.ref('products/' + productId).once('value', doc => { const p = doc.val(); if (!p) return; editingProductId = productId; document.getElementById('formTitle').innerText = 'Edit Product'; document.getElementById('submitProductBtn').innerText = 'Update'; document.getElementById('productTitle').value = p.title || ''; document.getElementById('productDescription').value = p.description || ''; document.getElementById('productPrice').value = p.price || 0; document.getElementById('productLabel').value = p.label || ''; document.getElementById('productCoverImage').value = p.coverImage || ''; document.getElementById('productImages').value = (p.images || []).join(', '); document.getElementById('productFile').value = p.downloadableFile || ''; showScreen('addProductScreen'); }); }
+        function deleteProduct(productId) { if (confirm("Are you sure?")) { db.ref("products/" + productId).remove().then(() => { alert("Product deleted!"); loadProductsForEdit(); }).catch(e => alert(e.message)); } }
+
+        function loadComplaints() {
+            showScreen('complaintsScreen');
+            db.ref('complaints').once('value').then(s => localStorage.setItem('seenComplaintsCount', s.numChildren()));
+            updateBadge('complaint-badge', 'seenComplaintsCount', 0);
+            db.ref("complaints").orderByChild("timestamp").once("value", snapshot => { const list = document.getElementById("complaintsList"); list.innerHTML = ""; let complaintsHtml = ""; snapshot.forEach(child => { const c = child.val(); const complaintTime = new Date(c.timestamp).toLocaleString(); let imageHtml = ''; if (c.imageBase64) { imageHtml = `<p><strong>Screenshot:</strong><br><img src="${c.imageBase64}" alt="Complaint Screenshot" style="max-width: 100%; border-radius: 5px; margin-top: 5px;"></p>`; } else if (c.imageUrl) { imageHtml = `<p><strong>Image URL:</strong> <a href="${c.imageUrl}" target="_blank">View Image</a></p>`; } complaintsHtml = `<div class="complaint-item"><div class="complaint-summary" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'"><span>${c.userEmail}</span><span>${c.type} &darr;</span></div><div class="complaint-details"><p><strong>Payment ID:</strong> ${c.paymentId}</p><p><strong>Message:</strong> ${c.message || 'No message provided.'}</p>${imageHtml}<p><strong>Time:</strong> <small>${complaintTime}</small></p></div></div>` + complaintsHtml; }); list.innerHTML = complaintsHtml || "<p>No complaints found.</p>"; });
+        }
+        function loadComplaintTypesManager() { const list = document.getElementById("complaintTypesList"); db.ref('complaintTypes').on('value', snapshot => { list.innerHTML = ""; if (snapshot.exists()) { snapshot.forEach(child => { list.innerHTML += `<div class="type-manager-item"><span>${child.val()}</span><button class="btn-delete" style="width:auto;" onclick="deleteComplaintType('${child.key}')">Delete</button></div>`; }); } else { list.innerHTML = "<p>No complaint types added yet.</p>"; } }); }
+        function addComplaintType() { const input = document.getElementById('newComplaintType'); const typeText = input.value.trim(); if (typeText) { db.ref('complaintTypes').push(typeText).then(() => { input.value = ''; }).catch(e => alert(e.message)); } }
+        function deleteComplaintType(key) { if (confirm("Are you sure?")) { db.ref('complaintTypes/' + key).remove(); } }
+
+        async function loadUsers() {
+            showScreen('usersScreen');
+            const list = document.getElementById("usersList"); list.innerHTML = "<p>Loading users...</p>";
+            try {
+                const [usersSnap, ordersSnap] = await Promise.all([ db.ref("users").once("value"), db.ref("orders").once("value") ]);
+                const allUsers = {};
+                if (usersSnap.exists()) { usersSnap.forEach(child => { const user = child.val(); if (user.email) { allUsers[child.key] = user.email; } }); }
+                if (ordersSnap.exists()) { ordersSnap.forEach(child => { const order = child.val(); if (order.userId && order.userEmail && !allUsers[order.userId]) { allUsers[order.userId] = order.userEmail; } }); }
+                list.innerHTML = "";
+                if (Object.keys(allUsers).length === 0) { list.innerHTML = "<p>No users found.</p>"; return; }
+                Object.entries(allUsers).forEach(([userId, userEmail]) => { list.innerHTML += `<div class="user-item"><div class="info"><h4>${userEmail}</h4><small>${userId}</small></div><div class="actions"><button class="btn-edit" onclick="editUserAccess('${userId}', '${userEmail}')">Edit Access</button></div></div>`; });
+            } catch (error) { list.innerHTML = `<p>Error loading users: ${error.message}</p>`; }
+        }
+
+        function searchUsers() { const input = document.getElementById('userSearchInput'); const filter = input.value.toUpperCase(); const list = document.getElementById('usersList'); const items = list.getElementsByClassName('user-item'); for (let i = 0; i < items.length; i++) { const h4 = items[i].getElementsByTagName("h4")[0]; if (h4.innerHTML.toUpperCase().indexOf(filter) > -1) { items[i].style.display = ""; } else { items[i].style.display = "none"; } } }
+        async function editUserAccess(userId, userEmail) {
+            currentEditingUserId = userId;
+            showScreen('editUserAccessScreen');
+            document.getElementById('editUserAccessTitle').innerText = `${userEmail}`;
+            const list = document.getElementById('userProductAccessList'); list.innerHTML = "<p>Loading products and permissions...</p>";
+            try {
+                const [productsSnap, grantsSnap] = await Promise.all([ db.ref('products').once('value'), db.ref('user_products/' + userId).once('value') ]);
+                const products = productsSnap.val(); const grants = grantsSnap.val() || {}; list.innerHTML = "";
+                if (!products) { list.innerHTML = "<p>No products found.</p>"; return; }
+                Object.entries(products).forEach(([productId, product]) => {
+                    const hasAccess = grants[productId] === true;
+                    list.innerHTML += `<div class="product-access-item"><div class="info"><h4>${product.title}</h4></div><div class="access-controls" data-product-id="${productId}"><label><input type="radio" name="access_${productId}" value="grant" ${hasAccess ? 'checked' : ''}> Grant</label><label><input type="radio" name="access_${productId}" value="revoke" ${!hasAccess ? 'checked' : ''}> Revoke</label></div></div>`;
+                });
+            } catch(error) { list.innerHTML = `<p>Error loading data: ${error.message}</p>`; }
+        }
+        function saveUserAccess() {
+            if (!currentEditingUserId) return alert("No user selected.");
+            const updates = {}; const controls = document.querySelectorAll('.access-controls');
+            controls.forEach(control => { const productId = control.dataset.productId; const selectedOption = control.querySelector(`input[name="access_${productId}"]:checked`).value; if (selectedOption === 'grant') { updates[`/user_products/${currentEditingUserId}/${productId}`] = true; } else { updates[`/user_products/${currentEditingUserId}/${productId}`] = null; } });
+            db.ref().update(updates).then(() => { alert("User access updated successfully!"); showScreen('usersScreen'); }).catch(error => { alert("Failed to update access: " + error.message); });
+        }
+    </script>
+</body>
+</html>
