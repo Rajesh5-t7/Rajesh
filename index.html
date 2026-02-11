@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    Material Notes - LocalStorage Single File App
+    ---------------------------------------------
+    Save as: material-notes.html
+    Run: open directly in any modern browser.
+    Storage: Uses window.localStorage only (notes, theme, PIN, view mode).
+
+    Theme / palette variables:
+      - Primary: --color-primary / --color-primary-dark
+      - Background & surfaces: --color-bg, --color-surface, --color-surface-alt
+      - Text: --color-text, --color-text-secondary
+      - Note colors: --note-red, --note-yellow, --note-green, --note-blue, --note-purple
+  -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Material Notes</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --color-primary: #2563eb;
+      --color-primary-dark: #1d4ed8;
+      --color-bg: #e5f0f3;
+      --color-surface: #f8fafc;
+      --color-surface-alt: #edf2f7;
+      --color-text: #111827;
+      --color-text-secondary: #6b7280;
+      --color-border-subtle: #d1d5db;
+      --color-shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.15);
+
+      --note-red: #fecaca;
+      --note-yellow: #fef3c7;
+      --note-green: #bbf7d0;
+      --note-blue: #bfdbfe;
+      --note-purple: #e9d5ff;
+
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --header-height: 56px;
+      --fab-size: 64px;
+    }
+
+    :root[data-theme="dark"] {
+      --color-bg: #020617;
+      --color-surface: #020617;
+      --color-surface-alt: #020617;
+      --color-text: #e5e7eb;
+      --color-text-secondary: #9ca3af;
+      --color-border-subtle: #1f2937;
+      --color-shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.9);
+
+      --note-red: #7f1d1d;
+      --note-yellow: #854d0e;
+      --note-green: #14532d;
+      --note-blue: #1d4ed8;
+      --note-purple: #6d28d9;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    #app-root {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--color-bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-shell {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Top App Bar */
+    .app-bar {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--color-bg);
+      backdrop-filter: blur(18px);
+    }
+
+    .app-bar-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .app-bar-spacer {
+      flex: 1;
+    }
+
+    .icon-btn {
+      border: none;
+      outline: none;
+      background: var(--color-surface-alt);
+      color: var(--color-text-secondary);
+      border-radius: 999px;
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+      font-size: 16px;
+      min-width: 40px;
+    }
+
+    .icon-btn-square {
+      border-radius: 16px;
+      width: 40px;
+      height: 40px;
+    }
+
+    .icon-btn.secondary {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.96);
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 220px;
+      margin-left: 12px;
+    }
+
+    .search-input-wrapper input {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      padding: 10px 34px 10px 34px;
+      font-size: 14px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+    }
+
+    .search-input-wrapper i {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-secondary);
+      font-size: 13px;
+    }
+
+    .view-toggle-btn {
+      margin-left: 8px;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      padding: 8px 16px 96px;
+      overflow-y: auto;
+    }
+
+    .empty-state {
+      height: calc(100vh - var(--header-height) - 96px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--color-text-secondary);
+    }
+
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 24px;
+      background: var(--color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--color-shadow-soft);
+      margin-bottom: 18px;
+      font-size: 32px;
+      color: var(--color-primary);
+    }
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .notes-grid.cards {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+
+    .note-item {
+      position: relative;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      padding: 12px 14px;
+      min-height: 64px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--color-shadow-soft);
+      cursor: pointer;
+    }
+
+    .note-item.list {
+      border-radius: 14px;
+      padding-left: 16px;
+    }
+
+    .note-color-strip {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      border-radius: 12px 0 0 12px;
+    }
+
+    .note-item.cards .note-color-strip {
+      display: none;
+    }
+
+    .note-item.cards {
+      border-radius: var(--radius-xl);
+      padding: 14px 16px 16px;
+    }
+
+    .note-color-bg {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .note-item.cards .note-color-bg {
+      opacity: 0.55;
+    }
+
+    .note-item-header {
+      display: flex;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .note-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .note-lock-icon {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    .note-content-preview {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      position: relative;
+      z-index: 1;
+    }
+
+    .note-meta {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      right: 22px;
+      bottom: 24px;
+      width: var(--fab-size);
+      height: var(--fab-size);
+      border-radius: 999px;
+      background: var(--color-primary);
+      color: #eff6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.85);
+      z-index: 30;
+      border: none;
+      font-size: 26px;
+      cursor: pointer;
+    }
+
+    .fab:active {
+      transform: scale(0.96);
+    }
+
+    /* Editor overlay */
+    .editor-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg);
+      display: none;
+      flex-direction: column;
+      z-index: 40;
+    }
+
+    .editor-overlay.active {
+      display: flex;
+    }
+
+    .editor-bar {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+
+    .editor-title-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 22px;
+      font-weight: 600;
+      padding: 12px 20px 4px;
+      color: var(--color-text);
+    }
+
+    .editor-title-input::placeholder {
+      color: var(--color-text-secondary);
+    }
+
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      padding: 4px 12px 0;
+      gap: 8px;
+    }
+
+    .editor-toolbar-btn {
+      border-radius: 999px;
+      background: var(--color-surface-alt);
+      border: none;
+      padding: 8px 14px;
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      min-height: 36px;
+    }
+
+    .editor-toolbar-btn.active {
+      background: var(--color-primary);
+      color: #eff6ff;
+    }
+
+    .editor-body {
+      flex: 1;
+      padding: 6px 18px 18px;
+    }
+
+    .editor-content {
+      width: 100%;
+      height: 100%;
+      padding-top: 8px;
+      border: none;
+      resize: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--color-text);
+    }
+
+    .editor-content::placeholder {
+      color: var(--color-text-secondary);
+    }
+
+    /* Color picker */
+    .color-popover {
+      position: absolute;
+      right: 16px;
+      top: calc(var(--header-height) + 8px);
+      background: var(--color-surface);
+      border-radius: 18px;
+      padding: 10px 12px;
+      box-shadow: var(--color-shadow-soft);
+      display: none;
+      z-index: 60;
+    }
+
+    .color-popover.active {
+      display: flex;
+      gap: 8px;
+    }
+
+    .color-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.25);
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.6);
+    }
+
+    .color-dot.selected {
+      border-color: #ffffff;
+    }
+
+    /* Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      display: none;
+      z-index: 35;
+    }
+
+    .drawer-backdrop.active {
+      display: block;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 78%;
+      max-width: 320px;
+      height: 100vh;
+      background: var(--color-surface);
+      box-shadow: var(--color-shadow-soft);
+      border-radius: 0 24px 24px 0;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease-out;
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 18px 24px;
+    }
+
+    .drawer.active {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .drawer-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .drawer-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 16px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-secondary);
+    }
+
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: var(--color-surface-alt);
+      margin-bottom: 8px;
+      min-height: 48px;
+      cursor: pointer;
+    }
+
+    .drawer-item span {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .drawer-item i {
+      color: var(--color-text-secondary);
+    }
+
+    /* Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 26px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #e5e7eb;
+      transition: 0.2s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #ffffff;
+      transition: 0.2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+    }
+
+    .switch input:checked + .slider {
+      background-color: var(--color-primary);
+    }
+
+    .switch input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    .drawer-footer {
+      margin-top: auto;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      padding-top: 12px;
+      border-top: 1px solid var(--color-border-subtle);
+    }
+
+    /* Dialog */
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+    }
+
+    .dialog-backdrop.active {
+      display: flex;
+    }
+
+    .dialog {
+      width: 88%;
+      max-width: 360px;
+      background: var(--color-surface);
+      border-radius: 24px;
+      padding: 18px 18px 14px;
+      box-shadow: var(--color-shadow-soft);
+    }
+
+    .dialog-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .dialog-body {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-bottom: 14px;
+    }
+
+    .dialog-input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .dialog-input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid var(--color-border-subtle);
+      padding: 9px 14px;
+      font-size: 16px;
+      text-align: center;
+      background: var(--color-surface-alt);
+      color: var(--color-text);
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      min-height: 36px;
+    }
+
+    .btn-text {
+      background: transparent;
+      color: var(--color-primary);
+    }
+
+    .btn-filled {
+      background: var(--color-primary);
+      color: #eff6ff;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.6);
+    }
+
+    /* Bottom toolbar like screenshot */
+    .home-bottom-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px 22px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+      background: radial-gradient(circle at 80% 0, rgba(37, 99, 235, 0.26), transparent 55%), #020617;
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.95);
+      z-index: 25;
+    }
+
+    .circle-btn {
+      border-radius: 999px;
+      width: 64px;
+      height: 64px;
+      background: #020b1f;
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      color: #e5e7eb;
+      font-size: 22px;
+      min-width: 64px;
+    }
+
+    .circle-btn:active {
+      transform: scale(0.96);
+    }
+
+    .circle-btn-secondary {
+      opacity: 0.9;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (min-width: 520px) {
+      .fab {
+        right: calc((100vw - 480px) / 2 + 22px);
+        bottom: 32px;
+      }
+      .home-bottom-bar {
+        bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app-root">
+    <div class="app-shell">
+      <!-- Home header -->
+      <header class="app-bar">
+        <button id="drawerToggleBtn" class="icon-btn secondary" aria-label="Menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="app-bar-title">Material Notes</div>
+        <div class="app-bar-spacer"></div>
+        <div class="search-input-wrapper">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="searchInput" placeholder="Search notes…" />
+        </div>
+        <button id="viewToggleBtn" class="icon-btn secondary view-toggle-btn" aria-label="Toggle view">
+          <i class="fa-solid fa-grip"></i>
+        </button>
+      </header>
+
+      <!-- Notes list -->
+      <main class="content">
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon">
+            <i class="fa-regular fa-note-sticky"></i>
+          </div>
+          <div style="font-size:18px;font-weight:600;margin-bottom:4px;">No notes yet</div>
+          <div style="font-size:14px;">Tap the + button to create your first note.</div>
+        </div>
+        <div id="notesContainer" class="notes-grid"></div>
+      </main>
+
+      <!-- FAB (new note) -->
+      <button id="fabNewNote" class="fab" aria-label="New note">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+
+      <!-- Bottom dark toolbar -->
+      <div class="home-bottom-bar">
+        <button id="shortcutNew" class="circle-btn" title="New note">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="shortcutPalette" class="circle-btn circle-btn-secondary" title="Palette">
+          <i class="fa-solid fa-palette"></i>
+        </button>
+        <button id="shortcutText" class="circle-btn circle-btn-secondary" title="Text style">
+          <span style="font-size:24px;font-weight:500;">A</span>
+        </button>
+      </div>
+
+      <!-- Editor -->
+      <section id="editorOverlay" class="editor-overlay">
+        <header class="editor-bar">
+          <button id="editorBackBtn" class="icon-btn secondary" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="app-bar-spacer"></div>
+          <button id="editorPinBtn" class="icon-btn-square" title="Pin">
+            <i class="fa-regular fa-bell"></i>
+          </button>
+          <button id="editorLockBtn" class="icon-btn-square" title="Lock/unlock">
+            <i class="fa-solid fa-lock-open"></i>
+          </button>
+          <button id="editorExportBtn" class="icon-btn-square" title="Export">
+            <i class="fa-solid fa-arrow-down-long"></i>
+          </button>
+          <button id="editorColorBtn" class="icon-btn-square" title="Color">
+            <i class="fa-solid fa-palette"></i>
+          </button>
+          <button id="editorDeleteBtn" class="icon-btn-square" title="Delete">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </header>
+        <input id="editorTitle" class="editor-title-input" placeholder="Title" />
+        <div class="editor-toolbar">
+          <button id="boldBtn" class="editor-toolbar-btn">
+            <i class="fa-solid fa-bold"></i><span>Bold</span>
+          </button>
+          <button id="italicBtn" class="editor-toolbar-btn">
+            <i class="fa-solid fa-italic"></i><span>Italic</span>
+          </button>
+        </div>
+        <div class="editor-body">
+          <textarea id="editorContent" class="editor-content" placeholder="Note"></textarea>
+        </div>
+      </section>
+
+      <!-- Color popover -->
+      <div id="colorPopover" class="color-popover"></div>
+
+      <!-- Drawer -->
+      <div id="drawerBackdrop" class="drawer-backdrop"></div>
+      <aside id="drawer" class="drawer">
+        <div class="drawer-header">
+          <div class="drawer-title">Settings</div>
+        </div>
+
+        <div class="drawer-section-title">Appearance</div>
+        <div class="drawer-item" id="themeToggleRow">
+          <span><i class="fa-regular fa-moon"></i> Theme</span>
+          <label class="switch">
+            <input id="themeSwitch" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="drawer-section-title">Security</div>
+        <div class="drawer-item" id="pinSetRow">
+          <span><i class="fa-solid fa-key"></i> Set / change PIN</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        <div class="drawer-item" id="pinClearRow">
+          <span><i class="fa-regular fa-circle-xmark"></i> Clear PIN</span>
+        </div>
+
+        <div class="drawer-section-title">About</div>
+        <div class="drawer-item" id="aboutRow">
+          <span><i class="fa-regular fa-circle-question"></i> About &amp; help</span>
+        </div>
+
+        <div class="drawer-footer">
+          Notes are stored only in this browser using LocalStorage. No network access required.
+        </div>
+      </aside>
+
+      <!-- Dialog -->
+      <div id="dialogBackdrop" class="dialog-backdrop">
+        <div class="dialog" role="dialog" aria-modal="true">
+          <div id="dialogTitle" class="dialog-title"></div>
+          <div id="dialogBody" class="dialog-body"></div>
+          <div id="dialogInputArea" class="dialog-input-row hidden">
+            <input id="dialogPinInput" class="dialog-input" type="password" inputmode="numeric" maxlength="4" placeholder="••••" />
+          </div>
+          <div class="dialog-actions">
+            <button id="dialogCancelBtn" class="btn btn-text">Cancel</button>
+            <button id="dialogOkBtn" class="btn btn-filled">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEYS = {
+      NOTES: "notes-app.notes",
+      THEME: "notes-app.theme",
+      VIEW: "notes-app.view",
+      PIN: "notes-app.pin",
+    };
+
+    const appState = {
+      notes: [],
+      currentNoteId: null,
+      viewMode: "list",
+      pin: null,
+    };
+
+    function safeLoad(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        return JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function safeSave(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch {}
+    }
+
+    // Theme
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+      safeSave(STORAGE_KEYS.THEME, theme);
+      const sw = document.getElementById("themeSwitch");
+      if (sw) sw.checked = theme === "dark";
+    }
+
+    function initTheme() {
+      const stored = safeLoad(STORAGE_KEYS.THEME, "dark");
+      applyTheme(stored);
+    }
+
+    // Notes
+    function loadNotes() {
+      appState.notes = safeLoad(STORAGE_KEYS.NOTES, []);
+    }
+
+    function persistNotes() {
+      safeSave(STORAGE_KEYS.NOTES, appState.notes);
+    }
+
+    function generateId() {
+      return "note-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+    }
+
+    function saveNoteToLocalStorage(note) {
+      const idx = appState.notes.findIndex((n) => n.id === note.id);
+      if (idx >= 0) appState.notes[idx] = note;
+      else appState.notes.push(note);
+      persistNotes();
+    }
+
+    function deleteNoteFromLocalStorage(id) {
+      appState.notes = appState.notes.filter((n) => n.id !== id);
+      persistNotes();
+    }
+
+    function renderNotesList() {
+      const container = document.getElementById("notesContainer");
+      const emptyState = document.getElementById("emptyState");
+      const searchValue = document.getElementById("searchInput").value.toLowerCase();
+
+      const notes = [...appState.notes].sort(
+        (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt
+      );
+
+      const filtered = notes.filter((n) => {
+        if (!searchValue) return true;
+        const target = (n.title + " " + n.content).toLowerCase();
+        return target.includes(searchValue);
+      });
+
+      if (!filtered.length) {
+        emptyState.classList.remove("hidden");
+        container.innerHTML = "";
+        return;
+      }
+      emptyState.classList.add("hidden");
+
+      container.classList.toggle("cards", appState.viewMode === "cards");
+      container.innerHTML = "";
+
+      filtered.forEach((note) => {
+        const item = document.createElement("article");
+        item.className = "note-item " + (appState.viewMode === "cards" ? "cards" : "list");
+        item.dataset.id = note.id;
+
+        const color = note.color || "var(--note-blue)";
+
+        const bg = document.createElement("div");
+        bg.className = "note-color-bg";
+        bg.style.background = color;
+        item.appendChild(bg);
+
+        const strip = document.createElement("div");
+        strip.className = "note-color-strip";
+        strip.style.background = color;
+        item.appendChild(strip);
+
+        const header = document.createElement("div");
+        header.className = "note-item-header";
+        const titleEl = document.createElement("div");
+        titleEl.className = "note-title";
+        titleEl.textContent = note.title || "(Untitled)";
+        header.appendChild(titleEl);
+
+        if (note.locked) {
+          const lock = document.createElement("i");
+          lock.className = "note-lock-icon fa-solid fa-lock";
+          header.appendChild(lock);
+        }
+
+        item.appendChild(header);
+
+        const preview = document.createElement("div");
+        preview.className = "note-content-preview";
+        preview.textContent = note.locked ? "Locked note" : (note.content || "");
+        item.appendChild(preview);
+
+        const meta = document.createElement("div");
+        meta.className = "note-meta";
+        const date = new Date(note.updatedAt);
+        meta.textContent = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        item.appendChild(meta);
+
+        item.addEventListener("click", () => openNoteEditor(note.id));
+        container.appendChild(item);
+      });
+    }
+
+    // Editor
+    const editorOverlay = document.getElementById("editorOverlay");
+    const editorTitle = document.getElementById("editorTitle");
+    const editorContent = document.getElementById("editorContent");
+    const editorLockBtn = document.getElementById("editorLockBtn");
+    const editorExportBtn = document.getElementById("editorExportBtn");
+    const editorDeleteBtn = document.getElementById("editorDeleteBtn");
+    const editorColorBtn = document.getElementById("editorColorBtn");
+    const colorPopover = document.getElementById("colorPopover");
+
+    function getCurrentNote() {
+      return appState.notes.find((n) => n.id === appState.currentNoteId) || null;
+    }
+
+    function openNoteEditor(noteId) {
+      let note = appState.notes.find((n) => n.id === noteId);
+      if (!note) {
+        note = {
+          id: noteId || generateId(),
+          title: "",
+          content: "",
+          color: "var(--note-blue)",
+          locked: false,
+          pinned: false,
+          updatedAt: Date.now(),
+        };
+        appState.notes.push(note);
+        persistNotes();
+      }
+      appState.currentNoteId = note.id;
+      editorTitle.value = note.title;
+      editorContent.value = note.content;
+      updateEditorLockIcon(note.locked);
+      updateColorPopoverSelection(note.color);
+      editorOverlay.classList.add("active");
+      editorContent.focus();
+    }
+
+    function closeEditorAndSave() {
+      if (!appState.currentNoteId) {
+        editorOverlay.classList.remove("active");
+        return;
+      }
+      const note = getCurrentNote();
+      if (!note) {
+        editorOverlay.classList.remove("active");
+        return;
+      }
+      note.title = editorTitle.value.trim();
+      note.content = editorContent.value;
+      note.updatedAt = Date.now();
+      saveNoteToLocalStorage(note);
+      appState.currentNoteId = null;
+      editorOverlay.classList.remove("active");
+      renderNotesList();
+    }
+
+    function updateEditorLockIcon(locked) {
+      const icon = editorLockBtn.querySelector("i");
+      icon.className = locked ? "fa-solid fa-lock" : "fa-solid fa-lock-open";
+    }
+
+    // Formatting toolbar
+    function surroundSelection(textarea, before, after) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      if (start == null || end == null) return;
+      const value = textarea.value;
+      const selected = value.slice(start, end);
+      const newValue = value.slice(0, start) + before + selected + after + value.slice(end);
+      textarea.value = newValue;
+      const cursor = end + before.length + after.length;
+      textarea.selectionStart = textarea.selectionEnd = cursor;
+      textarea.focus();
+    }
+
+    // Color picker
+    const colorPalette = ["var(--note-red)", "var(--note-yellow)", "var(--note-green)", "var(--note-blue)", "var(--note-purple)"];
+
+    function buildColorPopover() {
+      colorPopover.innerHTML = "";
+      const note = getCurrentNote();
+      const currentColor = note ? note.color : null;
+      colorPalette.forEach((color) => {
+        const dot = document.createElement("div");
+        dot.className = "color-dot";
+        dot.style.background = color;
+        if (color === currentColor) dot.classList.add("selected");
+        dot.addEventListener("click", () => {
+          const n = getCurrentNote();
+          if (!n) return;
+          n.color = color;
+          n.updatedAt = Date.now();
+          saveNoteToLocalStorage(n);
+          updateColorPopoverSelection(color);
+          renderNotesList();
+        });
+        colorPopover.appendChild(dot);
+      });
+    }
+
+    function updateColorPopoverSelection(color) {
+      buildColorPopover();
+      [...colorPopover.querySelectorAll(".color-dot")].forEach((dot) => {
+        dot.classList.toggle("selected", dot.style.background === color);
+      });
+    }
+
+    // Drawer
+    const drawer = document.getElementById("drawer");
+    const drawerBackdrop = document.getElementById("drawerBackdrop");
+
+    function openDrawer() {
+      drawer.classList.add("active");
+      drawerBackdrop.classList.add("active");
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove("active");
+      drawerBackdrop.classList.remove("active");
+    }
+
+    // PIN & dialog
+    function loadPin() {
+      appState.pin = safeLoad(STORAGE_KEYS.PIN, null);
+    }
+
+    function savePin(pin) {
+      appState.pin = pin;
+      safeSave(STORAGE_KEYS.PIN, pin);
+    }
+
+    function clearPin() {
+      appState.pin = null;
+      localStorage.removeItem(STORAGE_KEYS.PIN);
+    }
+
+    const dialogBackdrop = document.getElementById("dialogBackdrop");
+    const dialogTitle = document.getElementById("dialogTitle");
+    const dialogBody = document.getElementById("dialogBody");
+    const dialogInputArea = document.getElementById("dialogInputArea");
+    const dialogPinInput = document.getElementById("dialogPinInput");
+    const dialogCancelBtn = document.getElementById("dialogCancelBtn");
+    const dialogOkBtn = document.getElementById("dialogOkBtn");
+    let dialogResolve = null;
+
+    function showDialog({ title, body, requirePin = false }) {
+      dialogTitle.textContent = title;
+      dialogBody.textContent = body;
+      dialogInputArea.classList.toggle("hidden", !requirePin);
+      dialogPinInput.value = "";
+      dialogBackdrop.classList.add("active");
+      if (requirePin) setTimeout(() => dialogPinInput.focus(), 40);
+      return new Promise((resolve) => {
+        dialogResolve = resolve;
+      });
+    }
+
+    function hideDialog(result) {
+      dialogBackdrop.classList.remove("active");
+      if (dialogResolve) dialogResolve(result);
+      dialogResolve = null;
+    }
+
+    dialogCancelBtn.addEventListener("click", () => hideDialog({ ok: false }));
+    dialogOkBtn.addEventListener("click", () =>
+      hideDialog({ ok: true, pin: dialogPinInput.value.trim() })
+    );
+    dialogBackdrop.addEventListener("click", (e) => {
+      if (e.target === dialogBackdrop) hideDialog({ ok: false });
+    });
+
+    async function handlePinSetup() {
+      const res = await showDialog({
+        title: "Set 4‑digit PIN",
+        body: "This PIN will be required to lock or unlock notes.",
+        requirePin: true,
+      });
+      if (!res.ok) return;
+      const pin = res.pin;
+      if (!/^[0-9]{4}$/.test(pin)) {
+        await showDialog({
+          title: "Invalid PIN",
+          body: "Please enter exactly 4 digits.",
+        });
+        return;
+      }
+      savePin(pin);
+      await showDialog({
+        title: "PIN saved",
+        body: "Your security PIN has been set.",
+      });
+    }
+
+    async function handlePinClear() {
+      if (!appState.pin) {
+        await showDialog({
+          title: "No PIN",
+          body: "You have not set a PIN yet.",
+        });
+        return;
+      }
+      const res = await showDialog({
+        title: "Clear PIN?",
+        body: "Locked notes will no longer require a PIN.",
+      });
+      if (!res.ok) return;
+      clearPin();
+      await showDialog({
+        title: "PIN removed",
+        body: "Your PIN has been cleared.",
+      });
+    }
+
+    async function requestPinAndValidate() {
+      if (!appState.pin) {
+        await showDialog({
+          title: "No PIN configured",
+          body: "Set a PIN in Settings before locking notes.",
+        });
+        return { success: false };
+      }
+      const res = await showDialog({
+        title: "Enter PIN",
+        body: "Enter your 4‑digit PIN to continue.",
+        requirePin: true,
+      });
+      if (!res.ok) return { success: false };
+      if (res.pin !== appState.pin) {
+        await showDialog({
+          title: "Incorrect PIN",
+          body: "The PIN you entered is not correct.",
+        });
+        return { success: false };
+      }
+      return { success: true };
+    }
+
+    async function toggleLockCurrentNote() {
+      const note = getCurrentNote();
+      if (!note) return;
+      const result = await requestPinAndValidate();
+      if (!result.success) return;
+      note.locked = !note.locked;
+      note.updatedAt = Date.now();
+      saveNoteToLocalStorage(note);
+      updateEditorLockIcon(note.locked);
+      renderNotesList();
+    }
+
+    function exportCurrentNote() {
+      const note = getCurrentNote();
+      if (!note) return;
+      const blob = new Blob([`Title: ${note.title}\n\n${note.content}`], {
+        type: "text/plain;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeTitle = (note.title || "note").replace(/[\\/:*?"<>|]+/g, "_");
+      a.download = safeTitle + ".txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function deleteCurrentNote() {
+      const note = getCurrentNote();
+      if (!note) return;
+      const res = await showDialog({
+        title: "Delete note?",
+        body: "This action cannot be undone.",
+      });
+      if (!res.ok) return;
+      deleteNoteFromLocalStorage(note.id);
+      appState.currentNoteId = null;
+      editorOverlay.classList.remove("active");
+      renderNotesList();
+    }
+
+    // View mode
+    function initViewMode() {
+      appState.viewMode = safeLoad(STORAGE_KEYS.VIEW, "list");
+      updateViewToggleIcon();
+    }
+
+    function toggleViewMode() {
+      appState.viewMode = appState.viewMode === "list" ? "cards" : "list";
+      safeSave(STORAGE_KEYS.VIEW, appState.viewMode);
+      updateViewToggleIcon();
+      renderNotesList();
+    }
+
+    function updateViewToggleIcon() {
+      const icon = document.getElementById("viewToggleBtn").querySelector("i");
+      icon.className =
+        appState.viewMode === "list" ? "fa-solid fa-list-ul" : "fa-solid fa-grip";
+    }
+
+    // Init
+    document.addEventListener("DOMContentLoaded", () => {
+      initTheme();
+      loadPin();
+      loadNotes();
+      initViewMode();
+      renderNotesList();
+
+      document.getElementById("searchInput").addEventListener("input", renderNotesList);
+
+      document.getElementById("fabNewNote").addEventListener("click", () =>
+        openNoteEditor(generateId())
+      );
+      document.getElementById("shortcutNew").addEventListener("click", () =>
+        openNoteEditor(generateId())
+      );
+
+      document.getElementById("editorBackBtn").addEventListener("click", closeEditorAndSave);
+
+      document.getElementById("boldBtn").addEventListener("click", () =>
+        surroundSelection(editorContent, "**", "**")
+      );
+      document.getElementById("italicBtn").addEventListener("click", () =>
+        surroundSelection(editorContent, "*", "*")
+      );
+
+      editorLockBtn.addEventListener("click", toggleLockCurrentNote);
+      editorExportBtn.addEventListener("click", exportCurrentNote);
+      editorDeleteBtn.addEventListener("click", deleteCurrentNote);
+
+      editorColorBtn.addEventListener("click", () => {
+        buildColorPopover();
+        colorPopover.classList.toggle("active");
+      });
+      editorOverlay.addEventListener("click", (e) => {
+        if (!colorPopover.contains(e.target) && e.target !== editorColorBtn) {
+          colorPopover.classList.remove("active");
+        }
+      });
+
+      document.getElementById("drawerToggleBtn").addEventListener("click", openDrawer);
+      drawerBackdrop.addEventListener("click", closeDrawer);
+
+      document
+        .getElementById("themeSwitch")
+        .addEventListener("change", (e) =>
+          applyTheme(e.target.checked ? "dark" : "light")
+        );
+
+      document.getElementById("pinSetRow").addEventListener("click", handlePinSetup);
+      document.getElementById("pinClearRow").addEventListener("click", handlePinClear);
+      document.getElementById("aboutRow").addEventListener("click", async () => {
+        await showDialog({
+          title: "About Material Notes",
+          body: "A local‑storage notes demo. All notes, theme, and PIN stay in this browser only.",
+        });
+      });
+
+      document.getElementById("viewToggleBtn").addEventListener("click", toggleViewMode);
+    });
+  </script>
+</body>
+</html>
